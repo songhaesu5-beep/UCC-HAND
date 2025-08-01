@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>UCC SCANNER</title>
+  <title>UCC SCANNER INPUT</title>
   <style>
     html, body {
       margin: 0;
@@ -33,27 +33,12 @@
       top: 30%;
       left: 50%;
       transform: translate(-50%, -50%);
-      font-size: 3.5em;
+      font-size: 3.8em;
       font-weight: bold;
       text-align: center;
       z-index: 1000;
       text-shadow: 2px 2px 8px black;
       white-space: pre-line;
-    }
-
-    #codeInput {
-      position: absolute;
-      bottom: 20%;
-      left: 50%;
-      transform: translateX(-50%);
-      font-size: 2em;
-      padding: 10px;
-      width: 80%;
-      border-radius: 8px;
-      border: none;
-      text-align: center;
-      background: #222;
-      color: white;
     }
 
     #homeButton {
@@ -69,75 +54,78 @@
       cursor: pointer;
       z-index: 1001;
     }
+
+    #codeInput {
+      position: absolute;
+      bottom: 20%;
+      left: 50%;
+      transform: translateX(-50%);
+      font-size: 2em;
+      padding: 10px;
+      width: 80%;
+      text-align: center;
+      z-index: 1001;
+    }
   </style>
 </head>
 <body>
   <div id="infoOverlay"></div>
-  <div id="feedback"></div>
-  <input id="codeInput" type="text" autofocus placeholder="Scan or enter barcode..." />
+  <div id="feedback">Please wait...</div>
+  <input id="codeInput" type="text" placeholder="Scan barcode..." autofocus />
   <button id="homeButton" onclick="goHome()">HOME</button>
 
   <script>
-    const GAS_URL = "https://script.google.com/macros/s/AKfycbyBFOSXHctF1WmjDvoEHDwIvYiWfYJP-xTaymp8dP8EmUWn_Xp0YWlhX1fJ35Yi_a21Nw/exec";
+    const GAS_URL = "https://script.google.com/macros/s/AKfycbxzIngCMqGKS_dDNVMdRc0sPPMGdZME6VpyKZiHFH47l_7NvkmtKyhRZilnNOAu0uDOXQ/exec";
     const params = new URLSearchParams(window.location.search);
     const po = params.get("po");
     const type = params.get("type");
 
-    const input = document.getElementById("codeInput");
+    document.getElementById("infoOverlay").innerText = `Type: ${type}\nP/O: ${po}`;
     const feedback = document.getElementById("feedback");
+    const input = document.getElementById("codeInput");
 
-    function showFeedback(msg, color) {
-      feedback.innerText = msg;
-      feedback.style.color = color;
-    }
+    input.addEventListener("keydown", async (e) => {
+      if (e.key === "Enter") {
+        const code = input.value.trim();
+        input.value = "";
+        feedback.style.color = "gray";
+        feedback.innerText = "Please wait...";
+
+        if (!/^\d{20}$/.test(code)) {
+          feedback.style.color = "red";
+          feedback.innerText = "❌\n\nInvalid Code";
+          return;
+        }
+
+        try {
+          const url = `${GAS_URL}?code=${encodeURIComponent(code)}&type=${type}&po=${po}`;
+          const res = await fetch(url);
+          const { status, row, sscc, message } = await res.json();
+
+          let text = "";
+          if (status === "✓") {
+            text = `✅\n\nSSCC: ${sscc}\n\nRow: ${row}`;
+            feedback.style.color = "lime";
+          } else if (status === "DUP") {
+            text = `🔁 DUPLICATE\n\nSSCC: ${sscc}\n\nRow: ${row}`;
+            feedback.style.color = "orange";
+          } else {
+            text = "❌\n\nNot Registered";
+            feedback.style.color = "red";
+          }
+
+          if (message) text += `\n\n${message}`;
+          feedback.innerText = text;
+        } catch (err) {
+          feedback.style.color = "red";
+          feedback.innerText = "❌\n\nConnection Error";
+        }
+      }
+    });
 
     function goHome() {
       window.location.href = "index.html";
     }
-
-    input.addEventListener("change", () => {
-      const code = input.value.trim();
-      input.value = "";
-
-      if (code === "") return;
-
-      // ✅ 정확히 20자리 숫자인 경우만 유효한 SSCC로 간주
-      if (!/^\d{20}$/.test(code)) {
-        showFeedback("❌\n\nInvalid Code", "red");
-        return;
-      }
-
-      showFeedback("Please wait...", "gray");
-
-      const url = `${GAS_URL}?code=${encodeURIComponent(code)}&type=${type}&po=${po}`;
-      fetch(url)
-        .then(res => res.json())
-        .then(({ status, row, sscc, message }) => {
-          let text = "";
-          let color = "white";
-
-          if (status === "✓") {
-            text = `✅\n\nSSCC: ${sscc}\n\nRow: ${row}`;
-            color = "lime";
-          } else if (status === "DUP") {
-            text = `🔁 DUPLICATE\n\nSSCC: ${sscc}\n\nRow: ${row}`;
-            color = "orange";
-          } else {
-            text = "❌\n\nNot Registered";
-            color = "red";
-          }
-
-          if (message) text += `\n\n${message}`;
-          showFeedback(text, color);
-        })
-        .catch(err => {
-          showFeedback("❌\n\nError\n\n" + err, "red");
-        });
-    });
-
-    window.addEventListener("DOMContentLoaded", () => {
-      document.getElementById("infoOverlay").innerText = `Type: ${type}\nP/O: ${po}`;
-    });
   </script>
 </body>
 </html>
