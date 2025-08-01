@@ -35,6 +35,10 @@
       position: relative;
     }
 
+    #reader > div {
+      transform: translateY(-60px); /* QR 박스를 위로 이동 */
+    }
+
     #feedback {
       position: absolute;
       top: 30%;
@@ -96,7 +100,6 @@
     }
 
     function handleScan(code) {
-      // ✅ 모든 타입에서 20자리 숫자 SSCC가 아니면 Invalid 처리
       if (!/^\d{20}$/.test(code)) {
         showFeedback("❌\n\nInvalid Code", "red");
         return;
@@ -123,11 +126,19 @@
       const scanner = new Html5Qrcode("reader");
 
       const boxWidth = Math.floor(window.innerWidth * 0.8);
-      const boxHeight = Math.floor(window.innerWidth * 0.25 * 0.33); // 2/3 줄인 높이
+      const boxHeight = Math.floor(window.innerWidth * 0.25 * 0.33 * (2 / 3)); // 세로 크기 2/3
+      const offsetY = Math.floor(window.innerHeight * 0.15);
+
+      const qrRegion = {
+        width: boxWidth,
+        height: boxHeight,
+        x: Math.floor((window.innerWidth - boxWidth) / 2),
+        y: offsetY
+      };
 
       scanner.start(
-        { facingMode: "environment" },
-        { fps: 15, qrbox: { width: boxWidth, height: boxHeight } },
+        { facingMode: { exact: "environment" } },
+        { fps: 15, qrbox: qrRegion },
         code => {
           scanner.stop().then(() => handleScan(code));
         }
