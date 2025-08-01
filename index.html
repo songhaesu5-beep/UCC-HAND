@@ -1,89 +1,28 @@
-<!-- scanner_input.html -->
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <title>Scanner Mode</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <style>
-    html, body {
-      margin: 0;
-      padding: 0;
-      background-color: black;
-      color: white;
-      font-family: sans-serif;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: flex-start;
-      height: 100vh;
-      padding: 30px 20px;
-      box-sizing: border-box;
-    }
+<!-- 기존 index.html 코드 앞부분 생략 -->
+    <label for="scannerMode">Scan Mode:</label>
+    <select id="scannerMode">
+      <option value="camera">Camera</option>
+      <option value="scanner">Scanner</option>
+    </select>
 
-    h2 {
-      margin-bottom: 20px;
-    }
+    <button onclick="startScanner()">▶ Start Scanning</button>
+<!-- 기존 스크립트 부분에 추가 -->
+    <script>
+      function startScanner() {
+        const type = document.getElementById("type").value;
+        const po = document.getElementById("po").value.trim();
+        const mode = document.getElementById("scannerMode").value;
 
-    input {
-      font-size: 1.5em;
-      padding: 10px;
-      margin-bottom: 20px;
-      border-radius: 8px;
-      border: none;
-      width: 100%;
-      box-sizing: border-box;
-    }
+        if (!type || !po) {
+          alert("Please fill in all fields.");
+          return;
+        }
 
-    button {
-      font-size: 1.2em;
-      padding: 12px;
-      border: none;
-      border-radius: 8px;
-      background-color: #2196F3;
-      color: white;
-      cursor: pointer;
-      width: 100%;
-    }
-
-    #feedback {
-      font-size: 1.5em;
-      margin-top: 30px;
-      white-space: pre-line;
-      text-align: center;
-    }
-  </style>
-</head>
-<body>
-  <h2>Bluetooth Scanner Mode</h2>
-  <input id="codeInput" type="text" placeholder="Scan barcode here" autofocus onkeydown="if(event.key==='Enter'){submitCode();}">
-  <button onclick="submitCode()">Submit</button>
-  <div id="feedback"></div>
-
-  <script>
-    const params = new URLSearchParams(window.location.search);
-    const type = params.get('type');
-    const po = params.get('po');
-    const GAS_URL = "https://script.google.com/macros/s/AKfycbxVlbWkVMdyN3Z33kkHJTAU-jSd3ytbU0pSVgn9CUqsgMPUolotJ96LIFKFMGrrywd5DA/exec";
-
-    function submitCode() {
-      const code = document.getElementById("codeInput").value.trim();
-      if (!code) return;
-
-      fetch(`${GAS_URL}?code=${encodeURIComponent(code)}&type=${type}&po=${po}`)
-        .then(res => res.text())
-        .then(result => {
-          const [status, row, sscc,, statusMsg] = result.split(":");
-          let symbol = "";
-          if (status === "✓") symbol = "✅";
-          else if (status === "DUP") symbol = "🔁";
-          else symbol = "❌";
-
-          document.getElementById("feedback").innerText = `${symbol}\nSSCC: ${sscc}\nRow: ${row}\n${statusMsg}`;
-          document.getElementById("codeInput").value = "";
-          document.getElementById("codeInput").focus();
-        });
-    }
-  </script>
-</body>
-</html>
+        const query = `type=${encodeURIComponent(type)}&po=${encodeURIComponent(po)}`;
+        if (mode === "camera") {
+          window.location.href = `scanner.html?${query}`;
+        } else {
+          window.location.href = `scanner_input.html?${query}`;
+        }
+      }
+    </script>
