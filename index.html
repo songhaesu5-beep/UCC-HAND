@@ -94,12 +94,12 @@
         return;
       }
 
-      const query = `type=${encodeURIComponent(type)}&po=${encodeURIComponent(po)}`;
+      const query = type=${encodeURIComponent(type)}&po=${encodeURIComponent(po)};
 
       if (mode === "camera") {
-        window.location.href = `scanner.html?${query}`;
+        window.location.href = scanner.html?${query};
       } else {
-        window.location.href = `scanner_input.html?${query}`;
+        window.location.href = scanner_input.html?${query};
       }
     }
   </script>
