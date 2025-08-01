@@ -1,108 +1,88 @@
+<!-- scanner_input.html -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>UCC Scanner - Bluetooth Mode</title>
+  <title>Scanner Mode</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <style>
-    body {
+    html, body {
+      margin: 0;
+      padding: 0;
       background-color: black;
       color: white;
       font-family: sans-serif;
       display: flex;
       flex-direction: column;
       align-items: center;
-      justify-content: center;
+      justify-content: flex-start;
       height: 100vh;
-      margin: 0;
+      padding: 30px 20px;
+      box-sizing: border-box;
+    }
+
+    h2 {
+      margin-bottom: 20px;
     }
 
     input {
       font-size: 1.5em;
       padding: 10px;
-      border-radius: 6px;
-      width: 300px;
+      margin-bottom: 20px;
+      border-radius: 8px;
+      border: none;
+      width: 100%;
+      box-sizing: border-box;
+    }
+
+    button {
+      font-size: 1.2em;
+      padding: 12px;
+      border: none;
+      border-radius: 8px;
+      background-color: #2196F3;
+      color: white;
+      cursor: pointer;
+      width: 100%;
     }
 
     #feedback {
-      margin-top: 20px;
       font-size: 1.5em;
-      text-align: center;
+      margin-top: 30px;
       white-space: pre-line;
-    }
-
-    #infoOverlay {
-      position: absolute;
-      top: 20px;
-      left: 20px;
-      font-size: 1.2em;
-      background: rgba(0,0,0,0.6);
-      padding: 10px;
-      border-radius: 10px;
-    }
-
-    #homeButton {
-      position: absolute;
-      bottom: 5%;
-      right: 5%;
-      font-size: 1.2em;
-      padding: 10px 20px;
-      background: #444;
-      color: white;
-      border: none;
-      border-radius: 8px;
-      cursor: pointer;
+      text-align: center;
     }
   </style>
 </head>
 <body>
-  <div id="infoOverlay"></div>
-  <input id="codeInput" type="text" placeholder="Scan barcode here" autofocus onkeydown="if(event.key==='Enter'){submitCode();}" />
+  <h2>Bluetooth Scanner Mode</h2>
+  <input id="codeInput" type="text" placeholder="Scan barcode here" autofocus onkeydown="if(event.key==='Enter'){submitCode();}">
+  <button onclick="submitCode()">Submit</button>
   <div id="feedback"></div>
-  <button id="homeButton" onclick="goHome()">HOME</button>
 
   <script>
-    const GAS_URL = "https://script.google.com/macros/s/AKfycbylsTfUfc6UE6vjtLDwCPxdo7HSmB4DJTybzsCqeWMU0mcrsFun4fQkr-ewzmtXBzt25w/exec";
     const params = new URLSearchParams(window.location.search);
-    const po = params.get("po");
-    const type = params.get("type");
-
-    document.getElementById("infoOverlay").innerText = `Type: ${type}\nP/O: ${po}`;
+    const type = params.get('type');
+    const po = params.get('po');
+    const GAS_URL = "https://script.google.com/macros/s/AKfycbxVlbWkVMdyN3Z33kkHJTAU-jSd3ytbU0pSVgn9CUqsgMPUolotJ96LIFKFMGrrywd5DA/exec";
 
     function submitCode() {
       const code = document.getElementById("codeInput").value.trim();
       if (!code) return;
 
-      if (type === "Inbound" && !/^\d{20}$/.test(code)) {
-        show("❌\n\nInvalid Code", "red");
-        return;
-      }
-
       fetch(`${GAS_URL}?code=${encodeURIComponent(code)}&type=${type}&po=${po}`)
-        .then(res => res.json())
-        .then(({ status, row, sscc, message }) => {
-          let text = "";
-          if (status === "✓") {
-            text = `✅\n\nSSCC: ${sscc}\n\nRow: ${row}`;
-          } else if (status === "DUP") {
-            text = `🔁 DUPLICATE\n\nSSCC: ${sscc}\n\nRow: ${row}`;
-          } else {
-            text = "❌\n\nNot Registered";
-          }
-          if (message) text += `\n\n${message}`;
-          show(text, status === "✓" ? "lime" : status === "DUP" ? "orange" : "red");
+        .then(res => res.text())
+        .then(result => {
+          const [status, row, sscc,, statusMsg] = result.split(":");
+          let symbol = "";
+          if (status === "✓") symbol = "✅";
+          else if (status === "DUP") symbol = "🔁";
+          else symbol = "❌";
+
+          document.getElementById("feedback").innerText = `${symbol}\nSSCC: ${sscc}\nRow: ${row}\n${statusMsg}`;
+          document.getElementById("codeInput").value = "";
+          document.getElementById("codeInput").focus();
         });
-
-      document.getElementById("codeInput").value = "";
-    }
-
-    function show(msg, color) {
-      const f = document.getElementById("feedback");
-      f.innerText = msg;
-      f.style.color = color;
-    }
-
-    function goHome() {
-      window.location.href = "index.html";
     }
   </script>
 </body>
