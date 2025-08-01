@@ -1,89 +1,162 @@
-<!-- scanner_input.html -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Scanner Mode</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>UCC SCANNER</title>
+  <script src="https://unpkg.com/html5-qrcode"></script>
   <style>
     html, body {
       margin: 0;
       padding: 0;
-      background-color: black;
+      background: black;
       color: white;
       font-family: sans-serif;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: flex-start;
+      height: 100%;
+      overflow: hidden;
+    }
+
+    #infoOverlay {
+      position: fixed;
+      top: 20px;
+      left: 20px;
+      font-size: 1.8em;
+      font-weight: bold;
+      background: rgba(0,0,0,0.6);
+      padding: 12px 20px;
+      border-radius: 12px;
+      z-index: 9999;
+      white-space: pre-line;
+      pointer-events: none;
+    }
+
+    #reader {
+      width: 100vw;
       height: 100vh;
-      padding: 30px 20px;
-      box-sizing: border-box;
-    }
-
-    h2 {
-      margin-bottom: 20px;
-    }
-
-    input {
-      font-size: 1.5em;
-      padding: 10px;
-      margin-bottom: 20px;
-      border-radius: 8px;
-      border: none;
-      width: 100%;
-      box-sizing: border-box;
-    }
-
-    button {
-      font-size: 1.2em;
-      padding: 12px;
-      border: none;
-      border-radius: 8px;
-      background-color: #2196F3;
-      color: white;
-      cursor: pointer;
-      width: 100%;
+      position: relative;
     }
 
     #feedback {
-      font-size: 1.5em;
-      margin-top: 30px;
-      white-space: pre-line;
+      position: absolute;
+      top: 30%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      font-size: 4em;
+      font-weight: bold;
       text-align: center;
+      z-index: 1000;
+      text-shadow: 2px 2px 8px black;
+      white-space: pre-line;
+    }
+
+    #nextButton, #homeButton {
+      position: absolute;
+      font-size: 1.5em;
+      padding: 16px 30px;
+      background-color: #444;
+      color: white;
+      border: none;
+      border-radius: 10px;
+      cursor: pointer;
+      z-index: 1001;
+    }
+
+    #nextButton {
+      bottom: 18%;
+      left: 50%;
+      transform: translateX(-50%);
+      display: none;
+    }
+
+    #homeButton {
+      bottom: 5%;
+      right: 5%;
     }
   </style>
 </head>
 <body>
-  <h2>Bluetooth Scanner Mode</h2>
-  <input id="codeInput" type="text" placeholder="Scan barcode here" autofocus onkeydown="if(event.key==='Enter'){submitCode();}">
-  <button onclick="submitCode()">Submit</button>
+  <div id="infoOverlay"></div>
+  <div id="reader"></div>
   <div id="feedback"></div>
+  <button id="nextButton" onclick="restartScanner()">NEXT</button>
+  <button id="homeButton" onclick="goHome()">HOME</button>
 
   <script>
+    const GAS_URL = "https://script.google.com/macros/s/AKfycbylsTfUfc6UE6vjtLDwCPxdo7HSmB4DJTybzsCqeWMU0mcrsFun4fQkr-ewzmtXBzt25w/exec";
     const params = new URLSearchParams(window.location.search);
-    const type = params.get('type');
-    const po = params.get('po');
-    const GAS_URL = "https://script.google.com/macros/s/AKfycbxVlbWkVMdyN3Z33kkHJTAU-jSd3ytbU0pSVgn9CUqsgMPUolotJ96LIFKFMGrrywd5DA/exec";
+    const po = params.get("po");
+    const type = params.get("type");
 
-    function submitCode() {
-      const code = document.getElementById("codeInput").value.trim();
-      if (!code) return;
+    const feedback = document.getElementById("feedback");
+    const nextButton = document.getElementById("nextButton");
 
-      fetch(`${GAS_URL}?code=${encodeURIComponent(code)}&type=${type}&po=${po}`)
-        .then(res => res.text())
-        .then(result => {
-          const [status, row, sscc,, statusMsg] = result.split(":");
-          let symbol = "";
-          if (status === "✓") symbol = "✅";
-          else if (status === "DUP") symbol = "🔁";
-          else symbol = "❌";
+    function showFeedback(msg, color) {
+      feedback.innerText = msg;
+      feedback.style.color = color;
+      nextButton.style.display = "block";
+    }
 
-          document.getElementById("feedback").innerText = `${symbol}\nSSCC: ${sscc}\nRow: ${row}\n${statusMsg}`;
-          document.getElementById("codeInput").value = "";
-          document.getElementById("codeInput").focus();
+    function handleScan(code) {
+      if (type === "Inbound" && !/^\d{20}$/.test(code)) {
+        showFeedback("❌\n\nInvalid Code", "red");
+        return;
+      }
+
+      const url = ${GAS_URL}?code=${encodeURIComponent(code)}&type=${type}&po=${po};
+      fetch(url)
+        .then(res => res.json())
+        .then(({ status, row, sscc, message }) => {
+          let text = "";
+          if (status === "✓") {
+            text = ✅\n\nSSCC: ${sscc}\n\nRow: ${row};
+          } else if (status === "DUP") {
+            text = 🔁 DUPLICATE\n\nSSCC: ${sscc}\n\nRow: ${row};
+          } else {
+            text = "❌\n\nNot Registered";
+          }
+          if (message) text += \n\n${message};
+          showFeedback(text, status === "✓" ? "lime" : status === "DUP" ? "orange" : "red");
         });
     }
+
+    function startScanner() {
+      const scanner = new Html5Qrcode("reader");
+
+      const boxWidth = Math.floor(window.innerWidth * 0.8);     // 너비: 화면의 80%
+      const boxHeight = Math.floor(window.innerWidth * 0.25 * 0.33);  // 기존 높이의 1/3로 줄이기
+      const offsetY = Math.floor(window.innerHeight * 0.15);     // 상단 위치 고정
+
+      const qrRegion = {
+        width: boxWidth,
+        height: boxHeight,
+        x: Math.floor((window.innerWidth - boxWidth) / 2),
+        y: offsetY
+      };
+
+      scanner.start(
+        { facingMode: { exact: "environment" } },
+        { fps: 15, qrbox: qrRegion },
+        code => {
+          scanner.stop().then(() => handleScan(code));
+        }
+      ).catch(err => {
+        showFeedback("❌\n\nCamera Error\n\n" + err, "red");
+      });
+    }
+
+    function restartScanner() {
+      feedback.innerHTML = "";
+      nextButton.style.display = "none";
+      startScanner();
+    }
+
+    function goHome() {
+      window.location.href = "index.html";
+    }
+
+    window.addEventListener("DOMContentLoaded", () => {
+      startScanner();
+      document.getElementById("infoOverlay").innerText = Type: ${type}\nP/O: ${po};
+    });
   </script>
 </body>
 </html>
