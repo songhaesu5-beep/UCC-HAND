@@ -1,71 +1,88 @@
+<!-- scanner_input.html -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <title>UCC SCANNER Setup</title>
+  <meta charset="UTF-8">
+  <title>Scanner Mode</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <style>
-    body {
-      font-family: sans-serif;
-      background-color: #111;
+    html, body {
+      margin: 0;
+      padding: 0;
+      background-color: black;
       color: white;
+      font-family: sans-serif;
       display: flex;
       flex-direction: column;
       align-items: center;
-      justify-content: center;
+      justify-content: flex-start;
       height: 100vh;
-      margin: 0;
+      padding: 30px 20px;
+      box-sizing: border-box;
     }
-    input, select, button {
-      font-size: 1.2em;
-      margin: 10px;
-      padding: 8px;
-      border-radius: 6px;
+
+    h2 {
+      margin-bottom: 20px;
+    }
+
+    input {
+      font-size: 1.5em;
+      padding: 10px;
+      margin-bottom: 20px;
+      border-radius: 8px;
       border: none;
+      width: 100%;
+      box-sizing: border-box;
     }
-    label {
+
+    button {
       font-size: 1.2em;
+      padding: 12px;
+      border: none;
+      border-radius: 8px;
+      background-color: #2196F3;
+      color: white;
+      cursor: pointer;
+      width: 100%;
     }
-    .toggle-container {
+
+    #feedback {
+      font-size: 1.5em;
       margin-top: 30px;
-      font-size: 1.2em;
-    }
-    .toggle-container label {
-      margin-right: 10px;
+      white-space: pre-line;
+      text-align: center;
     }
   </style>
 </head>
 <body>
-  <h2>UCC Scanner Setup</h2>
-
-  <label for="type">Type:</label>
-  <select id="type">
-    <option value="Inbound">Inbound</option>
-    <option value="Outbound">Outbound</option>
-  </select>
-
-  <label for="po">P/O Number:</label>
-  <input type="text" id="po" placeholder="Enter P/O Number" />
-
-  <div class="toggle-container">
-    <label><input type="radio" name="mode" value="camera" checked> Camera</label>
-    <label><input type="radio" name="mode" value="scanner"> Scanner</label>
-  </div>
-
-  <button onclick="go()">Start</button>
+  <h2>Bluetooth Scanner Mode</h2>
+  <input id="codeInput" type="text" placeholder="Scan barcode here" autofocus onkeydown="if(event.key==='Enter'){submitCode();}">
+  <button onclick="submitCode()">Submit</button>
+  <div id="feedback"></div>
 
   <script>
-    function go() {
-      const type = document.getElementById("type").value;
-      const po = document.getElementById("po").value;
-      const mode = document.querySelector('input[name="mode"]:checked').value;
+    const params = new URLSearchParams(window.location.search);
+    const type = params.get('type');
+    const po = params.get('po');
+    const GAS_URL = "https://script.google.com/macros/s/AKfycbxVlbWkVMdyN3Z33kkHJTAU-jSd3ytbU0pSVgn9CUqsgMPUolotJ96LIFKFMGrrywd5DA/exec";
 
-      if (!po) {
-        alert("Please enter P/O number.");
-        return;
-      }
+    function submitCode() {
+      const code = document.getElementById("codeInput").value.trim();
+      if (!code) return;
 
-      const page = mode === "scanner" ? "scanner_input.html" : "scanner.html";
-      window.location.href = `${page}?type=${type}&po=${encodeURIComponent(po)}`;
+      fetch(`${GAS_URL}?code=${encodeURIComponent(code)}&type=${type}&po=${po}`)
+        .then(res => res.text())
+        .then(result => {
+          const [status, row, sscc,, statusMsg] = result.split(":");
+          let symbol = "";
+          if (status === "✓") symbol = "✅";
+          else if (status === "DUP") symbol = "🔁";
+          else symbol = "❌";
+
+          document.getElementById("feedback").innerText = `${symbol}\nSSCC: ${sscc}\nRow: ${row}\n${statusMsg}`;
+          document.getElementById("codeInput").value = "";
+          document.getElementById("codeInput").focus();
+        });
     }
   </script>
 </body>
