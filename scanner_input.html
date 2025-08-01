@@ -43,7 +43,7 @@
 
     #feedback {
       margin-top: 80px;
-      font-size: 3em;
+      font-size: 4em; /* ✅ 더 크게 */
       font-weight: bold;
       white-space: pre-line;
       text-align: center;
@@ -83,16 +83,18 @@
 
     input.addEventListener("change", () => {
       const code = input.value.trim();
-      input.value = ""; // clear input for next scan
+      input.value = ""; // reset for next scan
 
-      // ✔ check format first
+      // ✅ 코드 유효성 먼저 검사
       if (!/^\d{20}$/.test(code)) {
         feedback.innerText = "❌\n\nInvalid Code";
         feedback.style.color = "red";
         return;
       }
 
-      feedback.innerText = ""; // clear during fetch
+      // ✅ 코드가 유효할 경우에만 Please wait 표시
+      feedback.innerText = "Please wait...";
+      feedback.style.color = "white";
 
       const url = `${GAS_URL}?code=${encodeURIComponent(code)}&type=${type}&po=${po}`;
       fetch(url)
