@@ -1,42 +1,62 @@
 <!DOCTYPE html>
-<html lang="ko">
+<html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>UCC SCANNER - 블루투스 모드</title>
+  <title>UCC Scanner - Bluetooth Mode</title>
   <style>
     body {
-      background: black;
+      background-color: black;
       color: white;
       font-family: sans-serif;
-      text-align: center;
-      padding-top: 60px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+      margin: 0;
     }
-    #codeInput {
-      font-size: 2em;
-      padding: 12px;
-      width: 80%;
+
+    input {
+      font-size: 1.5em;
+      padding: 10px;
+      border-radius: 6px;
+      width: 300px;
     }
+
     #feedback {
-      margin-top: 40px;
-      font-size: 2.5em;
-      font-weight: bold;
+      margin-top: 20px;
+      font-size: 1.5em;
+      text-align: center;
       white-space: pre-line;
     }
+
+    #infoOverlay {
+      position: absolute;
+      top: 20px;
+      left: 20px;
+      font-size: 1.2em;
+      background: rgba(0,0,0,0.6);
+      padding: 10px;
+      border-radius: 10px;
+    }
+
     #homeButton {
-      margin-top: 30px;
+      position: absolute;
+      bottom: 5%;
+      right: 5%;
       font-size: 1.2em;
       padding: 10px 20px;
       background: #444;
       color: white;
       border: none;
-      border-radius: 10px;
+      border-radius: 8px;
+      cursor: pointer;
     }
   </style>
 </head>
 <body>
-  <h2>블루투스 스캐너 입력</h2>
-  <p id="info"></p>
-  <input type="text" id="codeInput" placeholder="스캔 시 자동 입력됩니다" autofocus />
+  <div id="infoOverlay"></div>
+  <input id="codeInput" type="text" placeholder="Scan barcode here" autofocus onkeydown="if(event.key==='Enter'){submitCode();}" />
   <div id="feedback"></div>
   <button id="homeButton" onclick="goHome()">HOME</button>
 
@@ -46,28 +66,18 @@
     const po = params.get("po");
     const type = params.get("type");
 
-    document.getElementById("info").innerText = `Type: ${type}\nP/O: ${po}`;
+    document.getElementById("infoOverlay").innerText = `Type: ${type}\nP/O: ${po}`;
 
-    const input = document.getElementById("codeInput");
-    const feedback = document.getElementById("feedback");
+    function submitCode() {
+      const code = document.getElementById("codeInput").value.trim();
+      if (!code) return;
 
-    input.addEventListener("keypress", function(e) {
-      if (e.key === "Enter") {
-        const code = input.value.trim();
-        if (!code) return;
-        handleScan(code);
-        input.value = "";
-      }
-    });
-
-    function handleScan(code) {
       if (type === "Inbound" && !/^\d{20}$/.test(code)) {
-        showFeedback("❌\n\nInvalid Code", "red");
+        show("❌\n\nInvalid Code", "red");
         return;
       }
 
-      const url = `${GAS_URL}?code=${encodeURIComponent(code)}&type=${type}&po=${po}`;
-      fetch(url)
+      fetch(`${GAS_URL}?code=${encodeURIComponent(code)}&type=${type}&po=${po}`)
         .then(res => res.json())
         .then(({ status, row, sscc, message }) => {
           let text = "";
@@ -79,13 +89,16 @@
             text = "❌\n\nNot Registered";
           }
           if (message) text += `\n\n${message}`;
-          showFeedback(text, status === "✓" ? "lime" : status === "DUP" ? "orange" : "red");
+          show(text, status === "✓" ? "lime" : status === "DUP" ? "orange" : "red");
         });
+
+      document.getElementById("codeInput").value = "";
     }
 
-    function showFeedback(msg, color) {
-      feedback.innerText = msg;
-      feedback.style.color = color;
+    function show(msg, color) {
+      const f = document.getElementById("feedback");
+      f.innerText = msg;
+      f.style.color = color;
     }
 
     function goHome() {
