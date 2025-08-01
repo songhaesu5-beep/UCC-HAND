@@ -96,7 +96,7 @@
     }
 
     function handleScan(code) {
-      // ✅ Inbound, Outbound 모두에서 Invalid Code 처리
+      // ✅ 모든 타입에서 20자리 숫자 SSCC가 아니면 Invalid 처리
       if (!/^\d{20}$/.test(code)) {
         showFeedback("❌\n\nInvalid Code", "red");
         return;
@@ -123,19 +123,11 @@
       const scanner = new Html5Qrcode("reader");
 
       const boxWidth = Math.floor(window.innerWidth * 0.8);
-      const boxHeight = Math.floor(window.innerHeight * 0.10);  // 세로 길이 축소
-      const offsetY = Math.floor(window.innerHeight * 0.15);    // 윗면 고정
-
-      const qrRegion = {
-        width: boxWidth,
-        height: boxHeight,
-        x: Math.floor((window.innerWidth - boxWidth) / 2),
-        y: offsetY
-      };
+      const boxHeight = Math.floor(window.innerWidth * 0.25 * 0.33); // 2/3 줄인 높이
 
       scanner.start(
-        { facingMode: { exact: "environment" } },
-        { fps: 15, qrbox: qrRegion },
+        { facingMode: "environment" },
+        { fps: 15, qrbox: { width: boxWidth, height: boxHeight } },
         code => {
           scanner.stop().then(() => handleScan(code));
         }
