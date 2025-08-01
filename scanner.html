@@ -1,83 +1,43 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="ko">
 <head>
   <meta charset="UTF-8">
-  <title>UCC SCANNER</title>
-  <script src="https://unpkg.com/html5-qrcode"></script>
+  <title>UCC SCANNER - 블루투스 모드</title>
   <style>
-    html, body {
-      margin: 0;
-      padding: 0;
+    body {
       background: black;
       color: white;
       font-family: sans-serif;
-      height: 100%;
-      overflow: hidden;
-    }
-
-    #infoOverlay {
-      position: fixed;
-      top: 20px;
-      left: 20px;
-      font-size: 1.8em;
-      font-weight: bold;
-      background: rgba(0,0,0,0.6);
-      padding: 12px 20px;
-      border-radius: 12px;
-      z-index: 9999;
-      white-space: pre-line;
-      pointer-events: none;
-    }
-
-    #reader {
-      width: 100vw;
-      height: 100vh;
-      position: relative;
-    }
-
-    #feedback {
-      position: absolute;
-      top: 30%;
-      left: 50%;
-      transform: translate(-50%, -50%);
-      font-size: 4em;
-      font-weight: bold;
       text-align: center;
-      z-index: 1000;
-      text-shadow: 2px 2px 8px black;
+      padding-top: 60px;
+    }
+    #codeInput {
+      font-size: 2em;
+      padding: 12px;
+      width: 80%;
+    }
+    #feedback {
+      margin-top: 40px;
+      font-size: 2.5em;
+      font-weight: bold;
       white-space: pre-line;
     }
-
-    #nextButton, #homeButton {
-      position: absolute;
-      font-size: 1.5em;
-      padding: 16px 30px;
-      background-color: #444;
+    #homeButton {
+      margin-top: 30px;
+      font-size: 1.2em;
+      padding: 10px 20px;
+      background: #444;
       color: white;
       border: none;
       border-radius: 10px;
-      cursor: pointer;
-      z-index: 1001;
-    }
-
-    #nextButton {
-      bottom: 18%;
-      left: 50%;
-      transform: translateX(-50%);
-      display: none;
-    }
-
-    #homeButton {
-      bottom: 5%;
-      right: 5%;
     }
   </style>
 </head>
 <body>
-  <div id="infoOverlay"></div>
-  <div id="reader"></div>
+  <h2>블루투스 스캐너 입력</h2>
+  <p id="info"></p>
+  <input type="text" id="codeInput" placeholder="스캔 시 자동 입력됩니다" autofocus />
   <div id="feedback"></div>
-  <button id="nextButton" onclick="restartScanner()">NEXT</button>
   <button id="homeButton" onclick="goHome()">HOME</button>
 
   <script>
@@ -86,14 +46,19 @@
     const po = params.get("po");
     const type = params.get("type");
 
-    const feedback = document.getElementById("feedback");
-    const nextButton = document.getElementById("nextButton");
+    document.getElementById("info").innerText = `Type: ${type}\nP/O: ${po}`;
 
-    function showFeedback(msg, color) {
-      feedback.innerText = msg;
-      feedback.style.color = color;
-      nextButton.style.display = "block";
-    }
+    const input = document.getElementById("codeInput");
+    const feedback = document.getElementById("feedback");
+
+    input.addEventListener("keypress", function(e) {
+      if (e.key === "Enter") {
+        const code = input.value.trim();
+        if (!code) return;
+        handleScan(code);
+        input.value = "";
+      }
+    });
 
     function handleScan(code) {
       if (type === "Inbound" && !/^\d{20}$/.test(code)) {
@@ -118,45 +83,14 @@
         });
     }
 
-    function startScanner() {
-      const scanner = new Html5Qrcode("reader");
-
-      const boxWidth = Math.floor(window.innerWidth * 0.8);     // 너비: 화면의 80%
-      const boxHeight = Math.floor(window.innerWidth * 0.25 * 0.33);  // 기존 높이의 1/3로 줄이기
-      const offsetY = Math.floor(window.innerHeight * 0.15);     // 상단 위치 고정
-
-      const qrRegion = {
-        width: boxWidth,
-        height: boxHeight,
-        x: Math.floor((window.innerWidth - boxWidth) / 2),
-        y: offsetY
-      };
-
-      scanner.start(
-        { facingMode: { exact: "environment" } },
-        { fps: 15, qrbox: qrRegion },
-        code => {
-          scanner.stop().then(() => handleScan(code));
-        }
-      ).catch(err => {
-        showFeedback("❌\n\nCamera Error\n\n" + err, "red");
-      });
-    }
-
-    function restartScanner() {
-      feedback.innerHTML = "";
-      nextButton.style.display = "none";
-      startScanner();
+    function showFeedback(msg, color) {
+      feedback.innerText = msg;
+      feedback.style.color = color;
     }
 
     function goHome() {
       window.location.href = "index.html";
     }
-
-    window.addEventListener("DOMContentLoaded", () => {
-      startScanner();
-      document.getElementById("infoOverlay").innerText = `Type: ${type}\nP/O: ${po}`;
-    });
   </script>
 </body>
 </html>
