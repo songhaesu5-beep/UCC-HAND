@@ -7,42 +7,50 @@
     html, body {
       margin: 0;
       padding: 0;
-      background: black;
+      background-color: black;
       color: white;
       font-family: sans-serif;
       height: 100%;
-      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: flex-start;
     }
 
     #infoOverlay {
-      position: fixed;
-      top: 20px;
-      left: 20px;
       font-size: 1.8em;
       font-weight: bold;
       background: rgba(0,0,0,0.6);
       padding: 12px 20px;
       border-radius: 12px;
-      z-index: 9999;
+      margin: 20px;
       white-space: pre-line;
-      pointer-events: none;
+      align-self: flex-start;
+    }
+
+    #inputArea {
+      margin-top: 50px;
+    }
+
+    input {
+      font-size: 1.8em;
+      padding: 15px;
+      width: 80vw;
+      text-align: center;
+      border-radius: 10px;
+      border: none;
     }
 
     #feedback {
-      position: absolute;
-      top: 30%;
-      left: 50%;
-      transform: translate(-50%, -50%);
-      font-size: 3.8em;
+      margin-top: 80px;
+      font-size: 3em;
       font-weight: bold;
-      text-align: center;
-      z-index: 1000;
-      text-shadow: 2px 2px 8px black;
       white-space: pre-line;
+      text-align: center;
     }
 
     #homeButton {
-      position: absolute;
+      position: fixed;
       bottom: 5%;
       right: 5%;
       font-size: 1.5em;
@@ -52,26 +60,15 @@
       border: none;
       border-radius: 10px;
       cursor: pointer;
-      z-index: 1001;
-    }
-
-    #codeInput {
-      position: absolute;
-      bottom: 20%;
-      left: 50%;
-      transform: translateX(-50%);
-      font-size: 2em;
-      padding: 10px;
-      width: 80%;
-      text-align: center;
-      z-index: 1001;
     }
   </style>
 </head>
 <body>
   <div id="infoOverlay"></div>
-  <div id="feedback">Please wait...</div>
-  <input id="codeInput" type="text" placeholder="Scan barcode..." autofocus />
+  <div id="inputArea">
+    <input type="text" id="codeInput" placeholder="Scan barcode..." autofocus />
+  </div>
+  <div id="feedback"></div>
   <button id="homeButton" onclick="goHome()">HOME</button>
 
   <script>
@@ -81,27 +78,26 @@
     const type = params.get("type");
 
     document.getElementById("infoOverlay").innerText = `Type: ${type}\nP/O: ${po}`;
-    const feedback = document.getElementById("feedback");
     const input = document.getElementById("codeInput");
+    const feedback = document.getElementById("feedback");
 
-    input.addEventListener("keydown", async (e) => {
-      if (e.key === "Enter") {
-        const code = input.value.trim();
-        input.value = "";
-        feedback.style.color = "gray";
-        feedback.innerText = "Please wait...";
+    input.addEventListener("change", () => {
+      const code = input.value.trim();
+      input.value = ""; // clear input for next scan
 
-        if (!/^\d{20}$/.test(code)) {
-          feedback.style.color = "red";
-          feedback.innerText = "❌\n\nInvalid Code";
-          return;
-        }
+      // ✔ check format first
+      if (!/^\d{20}$/.test(code)) {
+        feedback.innerText = "❌\n\nInvalid Code";
+        feedback.style.color = "red";
+        return;
+      }
 
-        try {
-          const url = `${GAS_URL}?code=${encodeURIComponent(code)}&type=${type}&po=${po}`;
-          const res = await fetch(url);
-          const { status, row, sscc, message } = await res.json();
+      feedback.innerText = ""; // clear during fetch
 
+      const url = `${GAS_URL}?code=${encodeURIComponent(code)}&type=${type}&po=${po}`;
+      fetch(url)
+        .then(res => res.json())
+        .then(({ status, row, sscc, message }) => {
           let text = "";
           if (status === "✓") {
             text = `✅\n\nSSCC: ${sscc}\n\nRow: ${row}`;
@@ -110,17 +106,16 @@
             text = `🔁 DUPLICATE\n\nSSCC: ${sscc}\n\nRow: ${row}`;
             feedback.style.color = "orange";
           } else {
-            text = "❌\n\nNot Registered";
+            text = `❌\n\nNot Registered`;
             feedback.style.color = "red";
           }
-
           if (message) text += `\n\n${message}`;
           feedback.innerText = text;
-        } catch (err) {
+        })
+        .catch(err => {
+          feedback.innerText = `❌\n\nError`;
           feedback.style.color = "red";
-          feedback.innerText = "❌\n\nConnection Error";
-        }
-      }
+        });
     });
 
     function goHome() {
