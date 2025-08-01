@@ -70,7 +70,7 @@
 </head>
 <body>
   <div id="infoOverlay"></div>
-  <div id="feedback">Please wait...</div>
+  <div id="feedback"></div> <!-- ← 초기값 제거됨 -->
   <input id="codeInput" type="text" placeholder="Scan barcode..." autofocus />
   <button id="homeButton" onclick="goHome()">HOME</button>
 
@@ -89,7 +89,7 @@
         const code = input.value.trim();
         input.value = "";
         feedback.style.color = "gray";
-        feedback.innerText = "Please wait...";
+        feedback.innerText = "Please wait...";  // ← 입력 후에만 표시됨
 
         if (!/^\d{20}$/.test(code)) {
           feedback.style.color = "red";
