@@ -2,61 +2,70 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>UCC SCANNER SETUP</title>
+  <title>UCC SCANNER Setup</title>
   <style>
     body {
       font-family: sans-serif;
-      background: #f5f5f5;
+      background-color: #111;
+      color: white;
       display: flex;
       flex-direction: column;
       align-items: center;
-      padding-top: 50px;
+      justify-content: center;
+      height: 100vh;
+      margin: 0;
     }
     input, select, button {
       font-size: 1.2em;
       margin: 10px;
-      padding: 10px;
+      padding: 8px;
+      border-radius: 6px;
+      border: none;
+    }
+    label {
+      font-size: 1.2em;
+    }
+    .toggle-container {
+      margin-top: 30px;
+      font-size: 1.2em;
+    }
+    .toggle-container label {
+      margin-right: 10px;
     }
   </style>
 </head>
 <body>
-  <h2>스캔 모드 선택</h2>
-  <label>
-    P/O 번호:
-    <input type="text" id="po" placeholder="예: PO12345" required />
-  </label><br>
-  <label>
-    타입:
-    <select id="type">
-      <option value="Inbound">Inbound</option>
-      <option value="Outbound">Outbound</option>
-    </select>
-  </label><br>
-  <label>
-    스캔 모드:
-    <select id="mode">
-      <option value="camera">📷 카메라</option>
-      <option value="bluetooth">🔡 블루투스 스캐너</option>
-    </select>
-  </label><br>
-  <button onclick="startScan()">START</button>
+  <h2>UCC Scanner Setup</h2>
+
+  <label for="type">Type:</label>
+  <select id="type">
+    <option value="Inbound">Inbound</option>
+    <option value="Outbound">Outbound</option>
+  </select>
+
+  <label for="po">P/O Number:</label>
+  <input type="text" id="po" placeholder="Enter P/O Number" />
+
+  <div class="toggle-container">
+    <label><input type="radio" name="mode" value="camera" checked> Camera</label>
+    <label><input type="radio" name="mode" value="scanner"> Scanner</label>
+  </div>
+
+  <button onclick="go()">Start</button>
 
   <script>
-    function startScan() {
-      const po = document.getElementById("po").value;
+    function go() {
       const type = document.getElementById("type").value;
-      const mode = document.getElementById("mode").value;
+      const po = document.getElementById("po").value;
+      const mode = document.querySelector('input[name="mode"]:checked').value;
 
       if (!po) {
-        alert("P/O 번호를 입력해주세요.");
+        alert("Please enter P/O number.");
         return;
       }
 
-      if (mode === "camera") {
-        window.location.href = `scanner.html?po=${po}&type=${type}`;
-      } else {
-        window.location.href = `scanner_bluetooth.html?po=${po}&type=${type}`;
-      }
+      const page = mode === "scanner" ? "scanner_input.html" : "scanner.html";
+      window.location.href = `${page}?type=${type}&po=${encodeURIComponent(po)}`;
     }
   </script>
 </body>
