@@ -83,27 +83,26 @@
     <button onclick="startScanner()">▶ Start Scanning</button>
   </div>
 
+  <!-- ✅ 올바른 위치에 script 삽입 -->
   <script>
-   <script>
-  function startScanner() {
-    const type = document.getElementById("type").value;
-    const po = document.getElementById("po").value.trim();
-    const mode = document.getElementById("mode").value;
+    function startScanner() {
+      const type = document.getElementById("type").value;
+      const po = document.getElementById("po").value.trim();
+      const mode = document.getElementById("mode").value;
 
-    if (!type || !po) {
-      alert("Please fill in all fields.");
-      return;
+      if (!type || !po) {
+        alert("Please fill in all fields.");
+        return;
+      }
+
+      const query = `type=${encodeURIComponent(type)}&po=${encodeURIComponent(po)}`;
+
+      if (mode === "camera") {
+        window.location.href = `scanner.html?${query}`;
+      } else {
+        window.location.href = `scanner_input.html?${query}`;
+      }
     }
-
-    const query = `type=${encodeURIComponent(type)}&po=${encodeURIComponent(po)}`;
-
-    if (mode === "camera") {
-      window.location.href = `scanner.html?${query}`;
-    } else {
-      window.location.href = `scanner_input.html?${query}`;
-    }
-  }
-</script>
-
+  </script>
 </body>
 </html>
