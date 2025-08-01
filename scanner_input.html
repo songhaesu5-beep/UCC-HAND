@@ -2,80 +2,79 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>UCC SCANNER INPUT</title>
+  <title>UCC SCANNER - Scanner Input</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <style>
     html, body {
       margin: 0;
       padding: 0;
-      background: black;
+      background-color: black;
       color: white;
       font-family: sans-serif;
-      height: 100%;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: flex-start;
+      height: 100vh;
       overflow: hidden;
     }
 
     #infoOverlay {
-      position: fixed;
-      top: 20px;
-      left: 20px;
+      width: 100%;
+      text-align: left;
+      padding: 15px 20px;
       font-size: 1.8em;
       font-weight: bold;
       background: rgba(0,0,0,0.6);
-      padding: 12px 20px;
-      border-radius: 12px;
-      z-index: 9999;
+      position: fixed;
+      top: 0;
+      left: 0;
+      z-index: 999;
       white-space: pre-line;
-      pointer-events: none;
     }
 
-    #inputArea {
-      position: absolute;
-      top: 35%;
-      left: 50%;
-      transform: translate(-50%, -50%);
+    h1 {
       font-size: 2em;
-      text-align: center;
+      margin: 100px 0 30px;
     }
 
-    #barcodeInput {
+    input {
       font-size: 1.5em;
       padding: 10px;
-      width: 300px;
+      width: 80%;
+      border-radius: 10px;
+      border: none;
+      text-align: center;
+      margin-bottom: 20px;
     }
 
     #feedback {
-      position: absolute;
-      top: 60%;
-      left: 50%;
-      transform: translate(-50%, -50%);
-      font-size: 2.5em;
+      font-size: 2em;
       font-weight: bold;
       text-align: center;
-      text-shadow: 2px 2px 8px black;
       white-space: pre-line;
+      margin-top: 20px;
     }
 
     #homeButton {
       position: absolute;
       bottom: 5%;
       right: 5%;
-      font-size: 1.5em;
-      padding: 16px 30px;
+      font-size: 1.2em;
+      padding: 12px 24px;
       background-color: #444;
       color: white;
       border: none;
       border-radius: 10px;
       cursor: pointer;
-      z-index: 1001;
     }
   </style>
 </head>
 <body>
   <div id="infoOverlay"></div>
-  <div id="inputArea">
-    <input id="barcodeInput" placeholder="Scan barcode..." autofocus>
-  </div>
-  <div id="feedback"></div>
+  <h1>Scanner Input Mode</h1>
+  <input type="text" id="codeInput" placeholder="Scan SSCC..." autofocus>
+  <div id="feedback">Waiting for input...</div>
   <button id="homeButton" onclick="goHome()">HOME</button>
 
   <script>
@@ -84,43 +83,54 @@
     const po = params.get("po");
     const type = params.get("type");
 
-    const input = document.getElementById("barcodeInput");
+    const input = document.getElementById("codeInput");
     const feedback = document.getElementById("feedback");
     const infoOverlay = document.getElementById("infoOverlay");
 
-    // ✅ 상단 정보 표시
     infoOverlay.innerText = `Type: ${type}\nP/O: ${po}`;
 
-    input.addEventListener("keydown", function (e) {
-      if (e.key === "Enter") {
-        const code = input.value.trim();
-        input.value = "";
-        feedback.innerText = "Please Wait";
-        feedback.style.color = "white";
+    function showFeedback(msg, color) {
+      feedback.innerText = msg;
+      feedback.style.color = color;
+    }
 
-        const url = `${GAS_URL}?code=${encodeURIComponent(code)}&type=${type}&po=${po}`;
-        fetch(url)
-          .then(res => res.json())
-          .then(({ status, row, sscc, message }) => {
-            let text = "";
-            if (status === "✓") {
-              text = `✅\n\nSSCC: ${sscc}\n\nRow: ${row}`;
-              feedback.style.color = "lime";
-            } else if (status === "DUP") {
-              text = `🔁 DUPLICATE\n\nSSCC: ${sscc}\n\nRow: ${row}`;
-              feedback.style.color = "orange";
-            } else {
-              text = "❌\n\nNot Registered";
-              feedback.style.color = "red";
-            }
-            if (message) text += `\n\n${message}`;
-            feedback.innerText = text;
-          })
-          .catch(err => {
-            feedback.innerText = "❌\n\nError\n\n" + err;
-            feedback.style.color = "red";
-          });
+    input.addEventListener("change", () => {
+      const code = input.value.trim();
+      input.value = "";
+
+      if (code === "") return;
+
+      if (type === "Inbound" && !/^\d{20}$/.test(code)) {
+        showFeedback("❌\n\nInvalid Code", "red");
+        return;
       }
+
+      showFeedback("Please wait...", "gray");
+
+      const url = `${GAS_URL}?code=${encodeURIComponent(code)}&type=${type}&po=${po}`;
+      fetch(url)
+        .then(res => res.json())
+        .then(({ status, row, sscc, message }) => {
+          let text = "";
+          let color = "white";
+
+          if (status === "✓") {
+            text = `✅\n\nSSCC: ${sscc}\n\nRow: ${row}`;
+            color = "lime";
+          } else if (status === "DUP") {
+            text = `🔁 DUPLICATE\n\nSSCC: ${sscc}\n\nRow: ${row}`;
+            color = "orange";
+          } else {
+            text = "❌\n\nNot Registered";
+            color = "red";
+          }
+
+          if (message) text += `\n\n${message}`;
+          showFeedback(text, color);
+        })
+        .catch(err => {
+          showFeedback("❌\n\nError\n\n" + err, "red");
+        });
     });
 
     function goHome() {
