@@ -84,24 +84,26 @@
   </div>
 
   <script>
-    function startScanner() {
-      const type = document.getElementById("type").value;
-      const po = document.getElementById("po").value.trim();
-      const mode = document.getElementById("mode").value;
+   <script>
+  function startScanner() {
+    const type = document.getElementById("type").value;
+    const po = document.getElementById("po").value.trim();
+    const mode = document.getElementById("mode").value;
 
-      if (!type || !po) {
-        alert("Please fill in all fields.");
-        return;
-      }
-
-      const query = `type=${encodeURIComponent(type)}&po=${encodeURIComponent(po)}`;
-
-      if (mode === "camera") {
-        window.location.href = `scanner.html?${query}`;
-      } else {
-        window.location.href = `scanner_input.html?${query}`;
-      }
+    if (!type || !po) {
+      alert("Please fill in all fields.");
+      return;
     }
-  </script>
+
+    const query = `type=${encodeURIComponent(type)}&po=${encodeURIComponent(po)}`;
+
+    if (mode === "camera") {
+      window.location.href = `scanner.html?${query}`;
+    } else {
+      window.location.href = `scanner_input.html?${query}`;
+    }
+  }
+</script>
+
 </body>
 </html>
