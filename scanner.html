@@ -35,6 +35,10 @@
       position: relative;
     }
 
+    #reader > div {
+      transform: translateY(-60px); /* QR 박스를 위로 이동 */
+    }
+
     #feedback {
       position: absolute;
       top: 30%;
@@ -96,24 +100,24 @@
     }
 
     function handleScan(code) {
-      if (type === "Inbound" && !/^\d{20}$/.test(code)) {
+      if (!/^\d{20}$/.test(code)) {
         showFeedback("❌\n\nInvalid Code", "red");
         return;
       }
 
-      const url = ${GAS_URL}?code=${encodeURIComponent(code)}&type=${type}&po=${po};
+      const url = `${GAS_URL}?code=${encodeURIComponent(code)}&type=${type}&po=${po}`;
       fetch(url)
         .then(res => res.json())
         .then(({ status, row, sscc, message }) => {
           let text = "";
           if (status === "✓") {
-            text = ✅\n\nSSCC: ${sscc}\n\nRow: ${row};
+            text = `✅\n\nSSCC: ${sscc}\n\nRow: ${row}`;
           } else if (status === "DUP") {
-            text = 🔁 DUPLICATE\n\nSSCC: ${sscc}\n\nRow: ${row};
+            text = `🔁 DUPLICATE\n\nSSCC: ${sscc}\n\nRow: ${row}`;
           } else {
             text = "❌\n\nNot Registered";
           }
-          if (message) text += \n\n${message};
+          if (message) text += `\n\n${message}`;
           showFeedback(text, status === "✓" ? "lime" : status === "DUP" ? "orange" : "red");
         });
     }
@@ -122,7 +126,7 @@
       const scanner = new Html5Qrcode("reader");
 
       const boxWidth = Math.floor(window.innerWidth * 0.8);
-      const boxHeight = Math.floor(window.innerWidth * 0.25 * 0.33);
+      const boxHeight = Math.floor(window.innerWidth * 0.25 * 0.33 * (2 / 3)); // 세로 크기 2/3
       const offsetY = Math.floor(window.innerHeight * 0.15);
 
       const qrRegion = {
@@ -155,7 +159,7 @@
 
     window.addEventListener("DOMContentLoaded", () => {
       startScanner();
-      document.getElementById("infoOverlay").innerText = Type: ${type}\nP/O: ${po};
+      document.getElementById("infoOverlay").innerText = `Type: ${type}\nP/O: ${po}`;
     });
   </script>
 </body>
