@@ -96,6 +96,7 @@
     }
 
     function handleScan(code) {
+      // ✅ Inbound, Outbound 모두에서 Invalid Code 처리
       if (!/^\d{20}$/.test(code)) {
         showFeedback("❌\n\nInvalid Code", "red");
         return;
@@ -122,17 +123,15 @@
       const scanner = new Html5Qrcode("reader");
 
       const boxWidth = Math.floor(window.innerWidth * 0.8);
-      const boxHeight = Math.floor(window.innerWidth * 0.25 * 0.33 * (2 / 3));  // 기존 대비 2/3
-      const offsetY = Math.floor(window.innerHeight * 0.15);  // 윗면 위치 고정
+      const boxHeight = Math.floor(window.innerHeight * 0.10);  // 세로 길이 축소
+      const offsetY = Math.floor(window.innerHeight * 0.15);    // 윗면 고정
+
       const qrRegion = {
         width: boxWidth,
         height: boxHeight,
         x: Math.floor((window.innerWidth - boxWidth) / 2),
         y: offsetY
       };
-
-
-      
 
       scanner.start(
         { facingMode: { exact: "environment" } },
