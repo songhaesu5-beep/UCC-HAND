@@ -2,7 +2,8 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>UCC SCANNER INPUT</title>
+  <title>UCC SCANNER</title>
+  <script src="https://unpkg.com/html5-qrcode"></script>
   <style>
     html, body {
       margin: 0;
@@ -28,12 +29,18 @@
       pointer-events: none;
     }
 
+    #reader {
+      width: 100vw;
+      height: 100vh;
+      position: relative;
+    }
+
     #feedback {
       position: absolute;
       top: 30%;
       left: 50%;
       transform: translate(-50%, -50%);
-      font-size: 3.8em;
+      font-size: 4em;
       font-weight: bold;
       text-align: center;
       z-index: 1000;
@@ -41,10 +48,8 @@
       white-space: pre-line;
     }
 
-    #homeButton {
+    #nextButton, #homeButton {
       position: absolute;
-      bottom: 5%;
-      right: 5%;
       font-size: 1.5em;
       padding: 16px 30px;
       background-color: #444;
@@ -55,77 +60,103 @@
       z-index: 1001;
     }
 
-    #codeInput {
-      position: absolute;
-      bottom: 20%;
+    #nextButton {
+      bottom: 18%;
       left: 50%;
       transform: translateX(-50%);
-      font-size: 2em;
-      padding: 10px;
-      width: 80%;
-      text-align: center;
-      z-index: 1001;
+      display: none;
+    }
+
+    #homeButton {
+      bottom: 5%;
+      right: 5%;
     }
   </style>
 </head>
 <body>
   <div id="infoOverlay"></div>
-  <div id="feedback"></div> <!-- ← 초기값 제거됨 -->
-  <input id="codeInput" type="text" placeholder="Scan barcode..." autofocus />
+  <div id="reader"></div>
+  <div id="feedback"></div>
+  <button id="nextButton" onclick="restartScanner()">NEXT</button>
   <button id="homeButton" onclick="goHome()">HOME</button>
 
   <script>
-    const GAS_URL = "https://script.google.com/macros/s/AKfycbx-dAsS78HB6u8IjcDOQvUoecyW58b6ZdVNgwgJmqdVMPT7gB8IB5l8qBBmVBKl4UfLug/exec";
+    const GAS_URL = "https://script.google.com/macros/s/AKfycbyBFOSXHctF1WmjDvoEHDwIvYiWfYJP-xTaymp8dP8EmUWn_Xp0YWlhX1fJ35Yi_a21Nw/exec";
     const params = new URLSearchParams(window.location.search);
     const po = params.get("po");
     const type = params.get("type");
 
-    document.getElementById("infoOverlay").innerText = `Type: ${type}\nP/O: ${po}`;
     const feedback = document.getElementById("feedback");
-    const input = document.getElementById("codeInput");
+    const nextButton = document.getElementById("nextButton");
 
-    input.addEventListener("keydown", async (e) => {
-      if (e.key === "Enter") {
-        const code = input.value.trim();
-        input.value = "";
-        feedback.style.color = "gray";
-        feedback.innerText = "Please wait...";  // ← 입력 후에만 표시됨
+    function showFeedback(msg, color) {
+      feedback.innerText = msg;
+      feedback.style.color = color;
+      nextButton.style.display = "block";
+    }
 
-        if (!/^\d{20}$/.test(code)) {
-          feedback.style.color = "red";
-          feedback.innerText = "❌\n\nInvalid Code";
-          return;
-        }
+    function handleScan(code) {
+      if (!/^\d{20}$/.test(code)) {
+        showFeedback("❌\n\nInvalid Code", "red");
+        return;
+      }
 
-        try {
-          const url = `${GAS_URL}?code=${encodeURIComponent(code)}&type=${type}&po=${po}`;
-          const res = await fetch(url);
-          const { status, row, sscc, message } = await res.json();
-
+      const url = ${GAS_URL}?code=${encodeURIComponent(code)}&type=${type}&po=${po};
+      fetch(url)
+        .then(res => res.json())
+        .then(({ status, row, sscc, message }) => {
           let text = "";
           if (status === "✓") {
-            text = `✅\n\nSSCC: ${sscc}\n\nRow: ${row}`;
-            feedback.style.color = "lime";
+            text = ✅\n\nSSCC: ${sscc}\n\nRow: ${row};
           } else if (status === "DUP") {
-            text = `🔁 DUPLICATE\n\nSSCC: ${sscc}\n\nRow: ${row}`;
-            feedback.style.color = "orange";
+            text = 🔁 DUPLICATE\n\nSSCC: ${sscc}\n\nRow: ${row};
           } else {
-            text = "❌\n\nNot Registered";
-            feedback.style.color = "red";
+            text = ❌\n\nNot Registered;
           }
+          if (message) text += \n\n${message};
+          showFeedback(text, status === "✓" ? "lime" : status === "DUP" ? "orange" : "red");
+        });
+    }
 
-          if (message) text += `\n\n${message}`;
-          feedback.innerText = text;
-        } catch (err) {
-          feedback.style.color = "red";
-          feedback.innerText = "❌\n\nConnection Error";
+    function startScanner() {
+      const scanner = new Html5Qrcode("reader");
+
+      const boxWidth = Math.floor(window.innerWidth * 0.8);
+      const boxHeight = Math.floor(window.innerWidth * 0.25 * 0.33); // 세로길이 축소
+      const offsetY = Math.floor(window.innerHeight * 0.15);
+
+      const qrRegion = {
+        width: boxWidth,
+        height: boxHeight,
+        x: Math.floor((window.innerWidth - boxWidth) / 2),
+        y: offsetY
+      };
+
+      scanner.start(
+        { facingMode: { exact: "environment" } },
+        { fps: 15, qrbox: qrRegion },
+        code => {
+          scanner.stop().then(() => handleScan(code));
         }
-      }
-    });
+      ).catch(err => {
+        showFeedback("❌\n\nCamera Error\n\n" + err, "red");
+      });
+    }
+
+    function restartScanner() {
+      feedback.innerHTML = "";
+      nextButton.style.display = "none";
+      startScanner();
+    }
 
     function goHome() {
       window.location.href = "index.html";
     }
+
+    window.addEventListener("DOMContentLoaded", () => {
+      startScanner();
+      document.getElementById("infoOverlay").innerText = Type: ${type}\nP/O: ${po};
+    });
   </script>
 </body>
 </html>
