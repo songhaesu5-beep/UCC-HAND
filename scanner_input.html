@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>UCC SCANNER (Scanner Mode)</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    html, body {
+      margin: 0;
+      padding: 0;
+      background: black;
+      color: white;
+      font-family: sans-serif;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+    }
+
+    input {
+      font-size: 2em;
+      padding: 15px;
+      width: 80%;
+      text-align: center;
+      margin-bottom: 30px;
+      border-radius: 10px;
+      border: none;
+    }
+
+    #feedback {
+      font-size: 2.5em;
+      text-align: center;
+      white-space: pre-line;
+      text-shadow: 2px 2px 8px black;
+    }
+
+    #homeButton {
+      position: absolute;
+      bottom: 5%;
+      right: 5%;
+      font-size: 1.5em;
+      padding: 14px 24px;
+      background-color: #444;
+      color: white;
+      border: none;
+      border-radius: 10px;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+  <input type="text" id="codeInput" placeholder="Scan barcode..." autofocus />
+  <div id="feedback"></div>
+  <button id="homeButton" onclick="goHome()">HOME</button>
+
+  <script>
+    const GAS_URL = "https://script.google.com/macros/s/AKfycbylsTfUfc6UE6vjtLDwCPxdo7HSmB4DJTybzsCqeWMU0mcrsFun4fQkr-ewzmtXBzt25w/exec";
+    const params = new URLSearchParams(window.location.search);
+    const po = params.get("po");
+    const type = params.get("type");
+
+    const input = document.getElementById("codeInput");
+    const feedback = document.getElementById("feedback");
+
+    input.addEventListener("change", () => {
+      const code = input.value.trim();
+      input.value = "";
+
+      if (type === "Inbound" && !/^\d{20}$/.test(code)) {
+        feedback.innerText = "❌\n\nInvalid Code";
+        feedback.style.color = "red";
+        return;
+      }
+
+      const url = `${GAS_URL}?code=${encodeURIComponent(code)}&type=${type}&po=${po}`;
+      fetch(url)
+        .then(res => res.json())
+        .then(({ status, row, sscc, message }) => {
+          let text = "";
+          if (status === "✓") {
+            text = `✅\n\nSSCC: ${sscc}\n\nRow: ${row}`;
+            feedback.style.color = "lime";
+          } else if (status === "DUP") {
+            text = `🔁 DUPLICATE\n\nSSCC: ${sscc}\n\nRow: ${row}`;
+            feedback.style.color = "orange";
+          } else {
+            text = "❌\n\nNot Registered";
+            feedback.style.color = "red";
+          }
+          if (message) text += `\n\n${message}`;
+          feedback.innerText = text;
+        });
+    });
+
+    function goHome() {
+      window.location.href = "index.html";
+    }
+  </script>
+</body>
+</html>
