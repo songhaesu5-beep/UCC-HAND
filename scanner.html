@@ -65,7 +65,7 @@
 <body>
   <div id="infoOverlay"></div>
   <div id="reader"></div>
-  <div id="feedback">Please wait...</div>
+  <div id="feedback"></div>
   <button id="homeButton" onclick="window.location.href='index.html'">HOME</button>
 
   <script>
@@ -86,13 +86,11 @@
     async function onScanSuccess(decodedText) {
       const code = decodedText.trim();
 
-      // ✅ 모든 Type에서 20자리 숫자 아니면 Invalid Code
+      // 20자리 숫자 체크
       if (!/^\d{20}$/.test(code)) {
         showMessage("❌\n\nInvalid Code", "red");
         return;
       }
-
-      showMessage("Please wait...", "gray");
 
       try {
         const url = `${GAS_URL}?code=${encodeURIComponent(code)}&type=${type}&po=${po}`;
