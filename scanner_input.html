@@ -2,41 +2,51 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>UCC SCANNER (Manual)</title>
+  <title>UCC SCANNER - Scanner Input</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <style>
     html, body {
       margin: 0;
       padding: 0;
-      background: black;
+      background-color: black;
       color: white;
       font-family: sans-serif;
-      height: 100%;
       display: flex;
       flex-direction: column;
-      justify-content: center;
       align-items: center;
+      justify-content: center;
+      height: 100vh;
     }
+
+    h1 {
+      font-size: 2em;
+      margin-bottom: 30px;
+    }
+
     input {
       font-size: 1.5em;
       padding: 10px;
-      margin: 10px;
       width: 80%;
       border-radius: 10px;
       border: none;
       text-align: center;
+      margin-bottom: 20px;
     }
+
     #feedback {
-      font-size: 2em;
-      margin-top: 30px;
+      font-size: 1.8em;
+      font-weight: bold;
       text-align: center;
       white-space: pre-line;
     }
-    button {
-      margin-top: 20px;
+
+    #homeButton {
+      position: absolute;
+      bottom: 5%;
+      right: 5%;
       font-size: 1.2em;
-      padding: 10px 20px;
-      background: #4CAF50;
+      padding: 12px 24px;
+      background-color: #444;
       color: white;
       border: none;
       border-radius: 10px;
@@ -45,22 +55,35 @@
   </style>
 </head>
 <body>
-  <h2>Manual Scan Input</h2>
-  <input type="text" id="codeInput" placeholder="Scan barcode here" autofocus>
-  <button onclick="submitCode()">Submit</button>
+  <h1>Scanner Input Mode</h1>
+  <input type="text" id="codeInput" placeholder="Scan SSCC..." autofocus>
   <div id="feedback"></div>
+  <button id="homeButton" onclick="goHome()">HOME</button>
 
   <script>
+    const GAS_URL = "https://script.google.com/macros/s/AKfycbylsTfUfc6UE6vjtLDwCPxdo7HSmB4DJTybzsCqeWMU0mcrsFun4fQkr-ewzmtXBzt25w/exec";
     const params = new URLSearchParams(window.location.search);
     const po = params.get("po");
     const type = params.get("type");
-    const GAS_URL = "https://script.google.com/macros/s/AKfycbxzIngCMqGKS_dDNVMdRc0sPPMGdZME6VpyKZiHFH47l_7NvkmtKyhRZilnNOAu0uDOXQ/exec";
 
-    function submitCode() {
-      const code = document.getElementById("codeInput").value.trim();
-      if (!code) return;
+    const input = document.getElementById("codeInput");
+    const feedback = document.getElementById("feedback");
+
+    function showFeedback(msg, color) {
+      feedback.innerText = msg;
+      feedback.style.color = color;
+    }
+
+    input.addEventListener("change", () => {
+      const code = input.value.trim();
+      input.value = "";
+
+      if (type === "Inbound" && !/^\d{20}$/.test(code)) {
+        showFeedback("❌\n\nInvalid Code", "red");
+        return;
+      }
+
       const url = `${GAS_URL}?code=${encodeURIComponent(code)}&type=${type}&po=${po}`;
-
       fetch(url)
         .then(res => res.json())
         .then(({ status, row, sscc, message }) => {
@@ -73,14 +96,13 @@
             text = "❌\n\nNot Registered";
           }
           if (message) text += `\n\n${message}`;
-          document.getElementById("feedback").innerText = text;
-          document.getElementById("codeInput").value = "";
+          showFeedback(text, status === "✓" ? "lime" : status === "DUP" ? "orange" : "red");
         });
-    }
-
-    document.getElementById("codeInput").addEventListener("keydown", e => {
-      if (e.key === "Enter") submitCode();
     });
+
+    function goHome() {
+      window.location.href = "index.html";
+    }
   </script>
 </body>
 </html>
