@@ -16,21 +16,25 @@
       justify-content: center;
       align-items: center;
     }
+
     #container {
       width: 90%;
       max-width: 400px;
       text-align: center;
     }
+
     h1 {
       font-size: 2.2em;
       margin-bottom: 30px;
     }
+
     label {
       font-size: 1.5em;
       display: block;
       margin: 20px 0 8px;
       text-align: left;
     }
+
     input, select, button {
       font-size: 1.3em;
       padding: 12px 15px;
@@ -40,29 +44,26 @@
       width: 100%;
       box-sizing: border-box;
     }
+
     input::placeholder {
       color: #aaa;
     }
+
     button {
       background-color: #4CAF50;
       color: white;
       font-weight: bold;
       cursor: pointer;
     }
+
     button:hover {
       background-color: #45a049;
-    }
-    .toggle {
-      display: flex;
-      justify-content: space-between;
-      margin-top: 10px;
-      font-size: 1.2em;
     }
   </style>
 </head>
 <body>
   <div id="container">
-    <h1>🎞 UCC SCANNER</h1>
+    <h1>📦 UCC SCANNER</h1>
 
     <label for="type">Type:</label>
     <select id="type">
@@ -73,10 +74,11 @@
     <label for="po">P/O:</label>
     <input type="text" id="po" placeholder="e.g. 4516365821" required>
 
-    <div class="toggle">
-      <label><input type="radio" name="mode" value="camera" checked> Camera</label>
-      <label><input type="radio" name="mode" value="scanner"> Scanner</label>
-    </div>
+    <label for="mode">Scan Mode:</label>
+    <select id="mode">
+      <option value="camera">Camera</option>
+      <option value="scanner">Scanner</option>
+    </select>
 
     <button onclick="startScanner()">▶ Start Scanning</button>
   </div>
@@ -85,7 +87,7 @@
     function startScanner() {
       const type = document.getElementById("type").value;
       const po = document.getElementById("po").value.trim();
-      const mode = document.querySelector("input[name='mode']:checked").value;
+      const mode = document.getElementById("mode").value;
 
       if (!type || !po) {
         alert("Please fill in all fields.");
@@ -93,7 +95,12 @@
       }
 
       const query = `type=${encodeURIComponent(type)}&po=${encodeURIComponent(po)}`;
-      window.location.href = mode === 'camera' ? `scanner.html?${query}` : `scanner_input.html?${query}`;
+
+      if (mode === "camera") {
+        window.location.href = `scanner.html?${query}`;
+      } else {
+        window.location.href = `scanner_input.html?${query}`;
+      }
     }
   </script>
 </body>
