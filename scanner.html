@@ -1,61 +1,92 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <title>UCC Camera Scanner</title>
-  <script src="https://unpkg.com/html5-qrcode"></script>
+  <meta charset="UTF-8" />
+  <title>UCC SCANNER (Camera)</title>
+  <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
   <style>
-    body {
-      font-family: sans-serif;
+    html, body {
       margin: 0;
       padding: 0;
       background-color: black;
       color: white;
-      text-align: center;
+      font-family: sans-serif;
+      height: 100%;
+      overflow: hidden;
     }
-    #scanner {
-      width: 100%;
-      margin-top: 20px;
-    }
-    #feedback {
-      font-size: 1.8rem;
+
+    #infoOverlay {
+      position: fixed;
+      top: 20px;
+      left: 20px;
+      font-size: 1.8em;
       font-weight: bold;
-      margin-top: 20px;
+      background: rgba(0,0,0,0.6);
+      padding: 12px 20px;
+      border-radius: 12px;
+      z-index: 9999;
+      white-space: pre-line;
+      pointer-events: none;
+    }
+
+    #reader {
+      width: 100%;
+      height: 100%;
+    }
+
+    #feedback {
+      position: absolute;
+      top: 30%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      font-size: 3.8em;
+      font-weight: bold;
+      text-align: center;
+      z-index: 1000;
+      text-shadow: 2px 2px 8px black;
       white-space: pre-line;
     }
-    #info {
+
+    #homeButton {
       position: absolute;
-      top: 10px;
-      left: 10px;
-      font-size: 1rem;
-      text-align: left;
+      bottom: 5%;
+      right: 5%;
+      font-size: 1.5em;
+      padding: 16px 30px;
+      background-color: #444;
+      color: white;
+      border: none;
+      border-radius: 10px;
+      cursor: pointer;
+      z-index: 1001;
     }
   </style>
 </head>
 <body>
-  <div id="info"></div>
-  <div id="scanner"></div>
-  <div id="feedback">Scan a Code</div>
+  <div id="infoOverlay"></div>
+  <div id="reader"></div>
+  <div id="feedback">Please wait...</div>
+  <button id="homeButton" onclick="window.location.href='index.html'">HOME</button>
 
   <script>
-    const urlParams = new URLSearchParams(window.location.search);
-    const type = urlParams.get('type');
-    const po = urlParams.get('po');
-    const info = document.getElementById("info");
-    info.innerHTML = `Type: ${type}<br>P/O: ${po}`;
+    const GAS_URL = "https://script.google.com/macros/s/AKfycbxzIngCMqGKS_dDNVMdRc0sPPMGdZME6VpyKZiHFH47l_7NvkmtKyhRZilnNOAu0uDOXQ/exec";
+    const params = new URLSearchParams(window.location.search);
+    const po = params.get("po");
+    const type = params.get("type");
+    document.getElementById("infoOverlay").innerText = `Type: ${type}\nP/O: ${po}`;
 
     const feedback = document.getElementById("feedback");
-    const GAS_URL = "https://script.google.com/macros/s/AKfycbxVlbWkVMdyN3Z33kkHJTAU-jSd3ytbU0pSVgn9CUqsgMPUolotJ96LIFKFMGrrywd5DA/exec";
+    const qrRegionId = "reader";
 
-    function showMessage(msg, color) {
-      feedback.innerText = msg;
+    function showMessage(text, color) {
       feedback.style.color = color;
+      feedback.innerText = text;
     }
 
     async function onScanSuccess(decodedText) {
       const code = decodedText.trim();
 
-      // ✅ 20자리 숫자 아니면 Invalid
+      // ✅ 모든 Type에서 20자리 숫자 아니면 Invalid Code
       if (!/^\d{20}$/.test(code)) {
         showMessage("❌\n\nInvalid Code", "red");
         return;
@@ -82,29 +113,20 @@
 
         if (message) text += `\n\n${message}`;
         feedback.innerText = text;
-
       } catch (err) {
         showMessage("❌\n\nConnection Error", "red");
       }
     }
 
-    const html5QrCode = new Html5Qrcode("scanner");
-    Html5Qrcode.getCameras().then(devices => {
-      if (devices.length) {
-        html5QrCode.start(
-          { facingMode: "environment" },
-          {
-            fps: 10,
-            qrbox: { width: 250, height: 150 } // 윗 모서리 고정, 세로만 줄임
-          },
-          onScanSuccess
-        );
-      } else {
-        showMessage("❌ No camera found", "red");
-      }
-    }).catch(err => {
-      showMessage("❌ Camera Error", "red");
-    });
+    new Html5Qrcode(qrRegionId).start(
+      { facingMode: "environment" },
+      {
+        fps: 10,
+        qrbox: 250,
+        disableFlip: false,
+      },
+      onScanSuccess
+    );
   </script>
 </body>
 </html>
