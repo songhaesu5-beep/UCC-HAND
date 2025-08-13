@@ -81,13 +81,14 @@
   <button id="homeButton" onclick="goHome()">HOME</button>
 
   <script>
-    const GAS_URL = "https://script.google.com/macros/s/AKfycby-oFSV9uhbYsrZt8hDvETLB5ylHVqKe2f2zTgvbxAOik2bBp2DFaU7DuuzNFc6N6l4sQ/exec";
+    const GAS_URL = "https://script.google.com/macros/s/AKfycbx6fOzrZotuqZU0zsnirQpkGxe4w9Qz0aWAUh9qp3gxk93dCmhGX0ECmcz5u81T_uaupA/exec";
     const params = new URLSearchParams(window.location.search);
     const po = params.get("po");
     const type = params.get("type");
 
     const feedback = document.getElementById("feedback");
     const nextButton = document.getElementById("nextButton");
+    let isProcessing = false; // ✅ 중복 방지를 위한 락 변수
 
     function showFeedback(msg, color) {
       feedback.innerText = msg;
@@ -96,8 +97,12 @@
     }
 
     function handleScan(code) {
+      if (isProcessing) return; // ✅ 이미 처리 중이면 무시
+      isProcessing = true;
+
       if (!/^\d{20}$/.test(code)) {
         showFeedback("❌\n\nInvalid Code", "red");
+        isProcessing = false;
         return;
       }
 
@@ -119,6 +124,12 @@
         })
         .catch(err => {
           showFeedback(`❌\n\nFetch Error\n\n${err}`, "red");
+        })
+        .finally(() => {
+          setTimeout(() => {
+            isProcessing = false;
+            restartScanner();
+          }, 800); // ✅ 800ms 후 스캐너 재시작
         });
     }
 
