@@ -127,10 +127,7 @@
         const code = pendingQueue.shift();
         inflight++;
         sendOne(code).finally(() => {
-          inflight++;
-          inflight--; // 균형 유지를 위해 명확히 감소
-          inflight--; // (실제 inflight-- 한 번만 유효, 위 줄은 안전장치 느낌이면 제거 가능)
-          inflight = Math.max(0, inflight); // 음수 방지
+          // inflight 감소는 sendOne의 finally에서만 수행
           pump();
         });
       }
@@ -142,32 +139,33 @@
         const res = await fetch(url, { cache: "no-store" });
         const { status, row, sscc, message } = await res.json();
 
-        if (status === "✓") {
+        const norm = (status || "").toString().trim().toUpperCase();
+        const msg  = (message || "").toString().trim();
+
+        if (norm === "✓" || norm === "OK") {
           let text = `✅\n\nSSCC: ${sscc}\n\nRow: ${row}`;
-          if (message) text += `\n\n${message}`;
+          if (msg) text += `\n\n${msg}`;
           setFeedback(text, "lime");
-        } else if (status === "DUP") {
+        } else if (norm === "DUP") {
           let text = `🔁 DUPLICATE\n\nSSCC: ${sscc}\n\nRow: ${row}`;
-          if (message) text += `\n\n${message}`;
+          if (msg) text += `\n\n${msg}`;
           setFeedback(text, "orange");
-        } else if (status === "NOT_REGISTERED") {
+        } else if (msg === "Sheet not found") {
+          setFeedback("❌\n\nSheet not found", "red");
+        } else if (norm === "NOT_REGISTERED" || norm === "INVALID" || norm === "❌" || norm === "") {
           let text = "❌\n\nNot Registered";
-          if (message) text += `\n\n${message}`;
-          setFeedback(text, "red");
-        } else if (status === "INVALID") {
-          let text = "❌\n\nInvalid Code";
-          if (message) text += `\n\n${message}`;
+          if (msg && msg !== "Sheet not found") text += `\n\n${msg}`;
           setFeedback(text, "red");
         } else {
-          let text = "❌\n\nUnknown Response";
-          if (message) text += `\n\n${message}`;
+          // 최종 폴백도 Not Registered로 통일
+          let text = "❌\n\nNot Registered";
+          if (msg && msg !== "Sheet not found") text += `\n\n${msg}`;
           setFeedback(text, "red");
         }
       } catch (err) {
         setFeedback("❌\n\nConnection Error", "red");
       } finally {
-        inflight--; // 정상 감소
-        inflight = Math.max(0, inflight);
+        inflight = Math.max(0, inflight - 1);
       }
     }
 
