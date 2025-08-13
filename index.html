@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>UCC SCANNER Setup</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    html, body {
+      margin: 0;
+      padding: 0;
+      height: 100%;
+      background-color: black;
+      color: white;
+      font-family: sans-serif;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+
+    #container {
+      width: 90%;
+      max-width: 400px;
+      text-align: center;
+    }
+
+    h1 {
+      font-size: 2.2em;
+      margin-bottom: 30px;
+    }
+
+    label {
+      font-size: 1.5em;
+      display: block;
+      margin: 20px 0 8px;
+      text-align: left;
+    }
+
+    input, select, button {
+      font-size: 1.3em;
+      padding: 12px 15px;
+      margin: 5px 0 20px;
+      border-radius: 10px;
+      border: none;
+      width: 100%;
+      box-sizing: border-box;
+    }
+
+    input::placeholder {
+      color: #aaa;
+    }
+
+    button {
+      background-color: #4CAF50;
+      color: white;
+      font-weight: bold;
+      cursor: pointer;
+    }
+
+    button:hover {
+      background-color: #45a049;
+    }
+  </style>
+</head>
+<body>
+  <div id="container">
+    <h1>📦 UCC SCANNER</h1>
+
+    <label for="type">Type:</label>
+    <select id="type">
+      <option value="Inbound">Inbound</option>
+      <option value="Outbound">Outbound</option>
+    </select>
+
+    <label for="po">P/O:</label>
+    <input type="text" id="po" placeholder="e.g. 4516365821" required>
+
+    <label for="mode">Scan Mode:</label>
+    <select id="mode">
+      <option value="camera">Camera</option>
+      <option value="scanner">Scanner</option>
+    </select>
+
+    <button onclick="startScanner()">▶ Start Scanning</button>
+  </div>
+
+  <script>
+    function startScanner() {
+      const type = document.getElementById("type").value;
+      const po = document.getElementById("po").value.trim();
+      const mode = document.getElementById("mode").value;
+
+      if (!type || !po) {
+        alert("Please fill in all fields.");
+        return;
+      }
+
+      const query = `type=${encodeURIComponent(type)}&po=${encodeURIComponent(po)}`;
+
+      if (mode === "camera") {
+        window.location.href = `scanner.html?${query}`;
+      } else {
+        window.location.href = `scanner_input.html?${query}`;
+      }
+    }
+  </script>
+</body>
+</html>
