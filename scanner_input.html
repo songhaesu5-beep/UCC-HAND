@@ -75,7 +75,7 @@
   <button id="homeButton" onclick="goHome()">HOME</button>
 
   <script>
-    const GAS_URL = "https://script.google.com/macros/s/AKfycbx6fOzrZotuqZU0zsnirQpkGxe4w9Qz0aWAUh9qp3gxk93dCmhGX0ECmcz5u81T_uaupA/exec";
+    const GAS_URL = "https://script.google.com/macros/s/AKfycbzu2-TcyQ9r4CB-8LHyurEHt7Mrq2ExT2oF-RNH4E04QoX3P-BWIJs7XshMAHg4gJKMXg/exec";
     const params = new URLSearchParams(window.location.search);
     const po = params.get("po");
     const type = params.get("type");
@@ -84,23 +84,37 @@
     const feedback = document.getElementById("feedback");
     const input = document.getElementById("codeInput");
 
-    // ===== 파이프라인: 제한된 동시 처리로 속도+안정 양립 =====
+    // ===== 파이프라인: 제한된 동시 처리 =====
     const pendingQueue = [];
     let inflight = 0;
-    const MAX_IN_FLIGHT = 3; // 동시 전송 개수: 환경 따라 2~4 권장
+    const MAX_IN_FLIGHT = 3; // 2~4 권장
+
+    // ===== 추가: 자동 반복/포커스/초미세 디듀플(120ms) =====
+    let lastCode = "";
+    let lastTs = 0;
+    const MICRO_DEDUP_MS = 120;
 
     input.addEventListener("keydown", (e) => {
-      if (e.key !== "Enter") return;
+      if (e.key !== "Enter" || e.repeat) return; // 자동 반복 Enter 무시
       const code = input.value.trim();
       input.value = "";
+      input.focus({ preventScroll: true }); // 포커스 즉시 복원
 
-      // 유효성(20자리) 유지
+      // 20자리 유지
       if (!/^\d{20}$/.test(code)) {
         setFeedback("❌\n\nInvalid Code", "red");
         return;
       }
 
-      // 즉시 대기표시(스캔 반응성 유지)
+      // 같은 코드가 CR/LF 등으로 120ms 내 연속 입력되는 경우 한 번만 처리
+      const now = Date.now();
+      if (code === lastCode && (now - lastTs) < MICRO_DEDUP_MS) {
+        return;
+      }
+      lastCode = code;
+      lastTs = now;
+
+      // 즉시 대기표시
       setFeedback("Please wait...", "gray");
 
       // 큐 적재 후 펌프
@@ -113,8 +127,10 @@
         const code = pendingQueue.shift();
         inflight++;
         sendOne(code).finally(() => {
-          inflight--;
-          // 다음 작업 바로 펌프
+          inflight++;
+          inflight--; // 균형 유지를 위해 명확히 감소
+          inflight--; // (실제 inflight-- 한 번만 유효, 위 줄은 안전장치 느낌이면 제거 가능)
+          inflight = Math.max(0, inflight); // 음수 방지
           pump();
         });
       }
@@ -126,7 +142,6 @@
         const res = await fetch(url, { cache: "no-store" });
         const { status, row, sscc, message } = await res.json();
 
-        // 각 스캔의 응답이 오는 즉시 화면에 표시(마지막 것만 보이는 구조는 동일)
         if (status === "✓") {
           let text = `✅\n\nSSCC: ${sscc}\n\nRow: ${row}`;
           if (message) text += `\n\n${message}`;
@@ -150,6 +165,9 @@
         }
       } catch (err) {
         setFeedback("❌\n\nConnection Error", "red");
+      } finally {
+        inflight--; // 정상 감소
+        inflight = Math.max(0, inflight);
       }
     }
 
