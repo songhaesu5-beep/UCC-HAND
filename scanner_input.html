@@ -84,63 +84,78 @@
     const feedback = document.getElementById("feedback");
     const input = document.getElementById("codeInput");
 
-    // === 최소 추가: 큐 기반 순차 처리(연속 스캔 허용, 누락 방지) ===
+    // ===== 파이프라인: 제한된 동시 처리로 속도+안정 양립 =====
     const pendingQueue = [];
-    let isProcessing = false;
+    let inflight = 0;
+    const MAX_IN_FLIGHT = 3; // 동시 전송 개수: 환경 따라 2~4 권장
 
-    input.addEventListener("keydown", async (e) => {
-      if (e.key === "Enter") {
-        const code = input.value.trim();
-        input.value = "";
-        // 유효성 체크는 기존 그대로
-        if (!/^\d{20}$/.test(code)) {
-          feedback.style.color = "red";
-          feedback.innerText = "❌\n\nInvalid Code";
-          return;
-        }
-        // 연속 스캔 모두 큐에 적재
-        pendingQueue.push(code);
-        // 처리 루프 가동
-        if (!isProcessing) processQueue();
+    input.addEventListener("keydown", (e) => {
+      if (e.key !== "Enter") return;
+      const code = input.value.trim();
+      input.value = "";
+
+      // 유효성(20자리) 유지
+      if (!/^\d{20}$/.test(code)) {
+        setFeedback("❌\n\nInvalid Code", "red");
+        return;
       }
+
+      // 즉시 대기표시(스캔 반응성 유지)
+      setFeedback("Please wait...", "gray");
+
+      // 큐 적재 후 펌프
+      pendingQueue.push(code);
+      pump();
     });
 
-    async function processQueue() {
-      if (isProcessing) return;
-      isProcessing = true;
-
-      while (pendingQueue.length > 0) {
+    function pump() {
+      while (inflight < MAX_IN_FLIGHT && pendingQueue.length > 0) {
         const code = pendingQueue.shift();
-        feedback.style.color = "gray";
-        feedback.innerText = "Please wait...";
-
-        try {
-          const url = `${GAS_URL}?code=${encodeURIComponent(code)}&type=${type}&po=${po}`;
-          const res = await fetch(url);
-          const { status, row, sscc, message } = await res.json();
-
-          let text = "";
-          if (status === "✓") {
-            text = `✅\n\nSSCC: ${sscc}\n\nRow: ${row}`;
-            feedback.style.color = "lime";
-          } else if (status === "DUP") {
-            text = `🔁 DUPLICATE\n\nSSCC: ${sscc}\n\nRow: ${row}`;
-            feedback.style.color = "orange";
-          } else {
-            text = "❌\n\nNot Registered";
-            feedback.style.color = "red";
-          }
-          if (message) text += `\n\n${message}`;
-          feedback.innerText = text;
-        } catch (err) {
-          feedback.style.color = "red";
-          feedback.innerText = "❌\n\nConnection Error";
-        }
-        // 바로 다음 항목 처리(쿨다운 없음)
-        await Promise.resolve();
+        inflight++;
+        sendOne(code).finally(() => {
+          inflight--;
+          // 다음 작업 바로 펌프
+          pump();
+        });
       }
+    }
 
-      isProcessing = false;
+    async function sendOne(code) {
+      try {
+        const url = `${GAS_URL}?code=${encodeURIComponent(code)}&type=${encodeURIComponent(type)}&po=${encodeURIComponent(po)}`;
+        const res = await fetch(url, { cache: "no-store" });
+        const { status, row, sscc, message } = await res.json();
+
+        // 각 스캔의 응답이 오는 즉시 화면에 표시(마지막 것만 보이는 구조는 동일)
+        if (status === "✓") {
+          let text = `✅\n\nSSCC: ${sscc}\n\nRow: ${row}`;
+          if (message) text += `\n\n${message}`;
+          setFeedback(text, "lime");
+        } else if (status === "DUP") {
+          let text = `🔁 DUPLICATE\n\nSSCC: ${sscc}\n\nRow: ${row}`;
+          if (message) text += `\n\n${message}`;
+          setFeedback(text, "orange");
+        } else if (status === "NOT_REGISTERED") {
+          let text = "❌\n\nNot Registered";
+          if (message) text += `\n\n${message}`;
+          setFeedback(text, "red");
+        } else if (status === "INVALID") {
+          let text = "❌\n\nInvalid Code";
+          if (message) text += `\n\n${message}`;
+          setFeedback(text, "red");
+        } else {
+          let text = "❌\n\nUnknown Response";
+          if (message) text += `\n\n${message}`;
+          setFeedback(text, "red");
+        }
+      } catch (err) {
+        setFeedback("❌\n\nConnection Error", "red");
+      }
+    }
+
+    function setFeedback(text, color) {
+      feedback.style.color = color;
+      feedback.innerText = text;
     }
     // ===================================================
 
