@@ -13,6 +13,7 @@
       height: 100%;
       overflow: hidden;
     }
+
     #infoOverlay {
       position: fixed;
       top: 20px;
@@ -26,6 +27,7 @@
       white-space: pre-line;
       pointer-events: none;
     }
+
     #feedback {
       position: absolute;
       top: 30%;
@@ -38,6 +40,7 @@
       text-shadow: 2px 2px 8px black;
       white-space: pre-line;
     }
+
     #homeButton {
       position: absolute;
       bottom: 5%;
@@ -51,6 +54,7 @@
       cursor: pointer;
       z-index: 1001;
     }
+
     #codeInput {
       position: absolute;
       bottom: 20%;
@@ -80,71 +84,65 @@
     const feedback = document.getElementById("feedback");
     const input = document.getElementById("codeInput");
 
-    // ====== Added: processing guard + cooldown ======
+    // === 최소 추가: 큐 기반 순차 처리(연속 스캔 허용, 누락 방지) ===
+    const pendingQueue = [];
     let isProcessing = false;
-    const PROCESSING_COOLDOWN_MS = 800;
-    // =================================================
 
     input.addEventListener("keydown", async (e) => {
-      if (e.key !== "Enter" || e.repeat) return; // avoid auto-repeat double Enter
-      if (isProcessing) return;                  // guard against overlaps
-      isProcessing = true;
-
-      const code = input.value.trim();
-      input.value = "";
-      input.disabled = true;                     // block further keystrokes during processing
-
-      feedback.style.color = "gray";
-      feedback.innerText = "Please wait...";
-
-      // NOTE: Kept your 20-digit rule. Change to /^\d{18}$/ if you switch back to 18-digit SSCC.
-      if (!/^\d{20}$/.test(code)) {
-        feedback.style.color = "red";
-        feedback.innerText = "❌\n\nInvalid Code";
-        // release guard after cooldown to keep rhythm consistent
-        return releaseGuard();
-      }
-
-      try {
-        const url = `${GAS_URL}?code=${encodeURIComponent(code)}&type=${encodeURIComponent(type)}&po=${encodeURIComponent(po)}`;
-        const res = await fetch(url, { cache: "no-store" });
-        const { status, row, sscc, message } = await res.json();
-
-        let text = "";
-        if (status === "✓" || status === "OK") {
-          text = `✅\n\nSSCC: ${sscc}\n\nRow: ${row}`;
-          feedback.style.color = "lime";
-        } else if (status === "DUP") {
-          text = `🔁 DUPLICATE\n\nSSCC: ${sscc}\n\nRow: ${row}`;
-          feedback.style.color = "orange";
-        } else if (status === "NOT_REGISTERED") {
-          text = "❌\n\nNot Registered";
+      if (e.key === "Enter") {
+        const code = input.value.trim();
+        input.value = "";
+        // 유효성 체크는 기존 그대로
+        if (!/^\d{20}$/.test(code)) {
           feedback.style.color = "red";
-        } else if (status === "INVALID") {
-          text = "❌\n\nInvalid Code";
-          feedback.style.color = "red";
-        } else {
-          text = "❌\n\nUnknown Response";
-          feedback.style.color = "red";
+          feedback.innerText = "❌\n\nInvalid Code";
+          return;
         }
-
-        if (message) text += `\n\n${message}`;
-        feedback.innerText = text;
-      } catch (err) {
-        feedback.style.color = "red";
-        feedback.innerText = "❌\n\nConnection Error";
-      } finally {
-        releaseGuard();
+        // 연속 스캔 모두 큐에 적재
+        pendingQueue.push(code);
+        // 처리 루프 가동
+        if (!isProcessing) processQueue();
       }
     });
 
-    function releaseGuard() {
-      setTimeout(() => {
-        isProcessing = false;
-        input.disabled = false;
-        input.focus({ preventScroll: true });
-      }, PROCESSING_COOLDOWN_MS);
+    async function processQueue() {
+      if (isProcessing) return;
+      isProcessing = true;
+
+      while (pendingQueue.length > 0) {
+        const code = pendingQueue.shift();
+        feedback.style.color = "gray";
+        feedback.innerText = "Please wait...";
+
+        try {
+          const url = `${GAS_URL}?code=${encodeURIComponent(code)}&type=${type}&po=${po}`;
+          const res = await fetch(url);
+          const { status, row, sscc, message } = await res.json();
+
+          let text = "";
+          if (status === "✓") {
+            text = `✅\n\nSSCC: ${sscc}\n\nRow: ${row}`;
+            feedback.style.color = "lime";
+          } else if (status === "DUP") {
+            text = `🔁 DUPLICATE\n\nSSCC: ${sscc}\n\nRow: ${row}`;
+            feedback.style.color = "orange";
+          } else {
+            text = "❌\n\nNot Registered";
+            feedback.style.color = "red";
+          }
+          if (message) text += `\n\n${message}`;
+          feedback.innerText = text;
+        } catch (err) {
+          feedback.style.color = "red";
+          feedback.innerText = "❌\n\nConnection Error";
+        }
+        // 바로 다음 항목 처리(쿨다운 없음)
+        await Promise.resolve();
+      }
+
+      isProcessing = false;
     }
+    // ===================================================
 
     function goHome() {
       window.location.href = "index.html";
