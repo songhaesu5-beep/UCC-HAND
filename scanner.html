@@ -81,7 +81,7 @@
   <button id="homeButton" onclick="goHome()">HOME</button>
 
   <script>
-    const GAS_URL = "https://script.google.com/macros/s/AKfycbxn7IYBcm35qqFzdmM3M74niLT_j9LvbLtqTIbV_AFalbmZEw2HeRPj3Krj2ehdrJXKtA/exec";
+    const GAS_URL = "https://script.google.com/macros/s/AKfycbzIT14W1VC9uNMtMzYNk0nHoEE6fpT555olxLKlj-Xz4EuHUsnB_3MJuXK1Hzz9aMW1pQ/exec";
     const params = new URLSearchParams(window.location.search);
     const po = params.get("po");
     const type = params.get("type");
@@ -101,24 +101,24 @@
         return;
       }
 
-      const url = `${GAS_URL}?code=${encodeURIComponent(code)}&type=${type}&po=${po}`;
+      const url = ${GAS_URL}?code=${encodeURIComponent(code)}&type=${type}&po=${po};
       fetch(url)
         .then(res => res.json())
         .then(({ status, row, sscc, message }) => {
           let text = "";
           if (status === "✓") {
-            text = `✅\n\nSSCC: ${sscc}\n\nRow: ${row}`;
+            text = ✅\n\nSSCC: ${sscc}\n\nRow: ${row};
           } else if (status === "DUP") {
-            text = `🔁 DUPLICATE\n\nSSCC: ${sscc}\n\nRow: ${row}`;
+            text = 🔁 DUPLICATE\n\nSSCC: ${sscc}\n\nRow: ${row};
           } else {
-            text = `❌\n\nNot Registered`;
+            text = ❌\n\nNot Registered;
           }
 
-          if (message) text += `\n\n${message}`;
+          if (message) text += \n\n${message};
           showFeedback(text, status === "✓" ? "lime" : status === "DUP" ? "orange" : "red");
         })
         .catch(err => {
-          showFeedback(`❌\n\nFetch Error\n\n${err}`, "red");
+          showFeedback(❌\n\nFetch Error\n\n${err}, "red");
         });
     }
 
@@ -159,7 +159,7 @@
 
     window.addEventListener("DOMContentLoaded", () => {
       startScanner();
-      document.getElementById("infoOverlay").innerText = `Type: ${type}\nP/O: ${po}`;
+      document.getElementById("infoOverlay").innerText = Type: ${type}\nP/O: ${po};
     });
   </script>
 </body>
