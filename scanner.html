@@ -88,7 +88,6 @@
 
     const feedback = document.getElementById("feedback");
     const nextButton = document.getElementById("nextButton");
-    let isProcessing = false; // ✅ 중복 방지를 위한 락 변수
 
     function showFeedback(msg, color) {
       feedback.innerText = msg;
@@ -97,12 +96,8 @@
     }
 
     function handleScan(code) {
-      if (isProcessing) return; // ✅ 이미 처리 중이면 무시
-      isProcessing = true;
-
       if (!/^\d{20}$/.test(code)) {
         showFeedback("❌\n\nInvalid Code", "red");
-        isProcessing = false;
         return;
       }
 
@@ -124,12 +119,6 @@
         })
         .catch(err => {
           showFeedback(`❌\n\nFetch Error\n\n${err}`, "red");
-        })
-        .finally(() => {
-          setTimeout(() => {
-            isProcessing = false;
-            restartScanner();
-          }, 800); // ✅ 800ms 후 스캐너 재시작
         });
     }
 
