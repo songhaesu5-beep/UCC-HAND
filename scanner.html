@@ -105,17 +105,32 @@
       fetch(url)
         .then(res => res.json())
         .then(({ status, row, sscc, message }) => {
+          const norm = (status || "").toString().trim().toUpperCase();
+          const msg  = (message || "").toString().trim();
+
           let text = "";
-          if (status === "✓") {
+          let color = "red";
+
+          if (norm === "✓" || norm === "OK") {
             text = `✅\n\nSSCC: ${sscc}\n\nRow: ${row}`;
-          } else if (status === "DUP") {
+            color = "lime";
+          } else if (norm === "DUP") {
             text = `🔁 DUPLICATE\n\nSSCC: ${sscc}\n\nRow: ${row}`;
+            color = "orange";
+          } else if (msg === "Sheet not found") {
+            // PO가 잘못되어 시트 자체가 없을 때
+            text = "❌\n\nSheet not found";
+            color = "red";
           } else {
-            text = `❌\n\nNot Registered`;
+            // 그 밖의 비정상 응답(예: Outbound에서 미인바운드 코드 등)은 모두 Not Registered
+            text = "❌\n\nNot Registered";
+            color = "red";
           }
 
-          if (message) text += `\n\n${message}`;
-          showFeedback(text, status === "✓" ? "lime" : status === "DUP" ? "orange" : "red");
+          if (msg && msg !== "Sheet not found") {
+            text += `\n\n${msg}`;
+          }
+          showFeedback(text, color);
         })
         .catch(err => {
           showFeedback(`❌\n\nFetch Error\n\n${err}`, "red");
